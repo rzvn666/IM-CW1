@@ -21,7 +21,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- Name: account; Type: TABLE; Schema: public; Owner: postgres
+-- Name: account; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.account (
@@ -36,10 +36,10 @@ CREATE TABLE public.account (
 );
 
 
-ALTER TABLE public.account OWNER TO postgres;
+ALTER TABLE public.account OWNER TO bank;
 
 --
--- Name: account_types; Type: TABLE; Schema: public; Owner: postgres
+-- Name: account_types; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.account_types (
@@ -48,10 +48,10 @@ CREATE TABLE public.account_types (
 );
 
 
-ALTER TABLE public.account_types OWNER TO postgres;
+ALTER TABLE public.account_types OWNER TO bank;
 
 --
--- Name: account_types_type_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: account_types_type_id_seq; Type: SEQUENCE; Schema: public; Owner: bank
 --
 
 CREATE SEQUENCE public.account_types_type_id_seq
@@ -63,17 +63,17 @@ CREATE SEQUENCE public.account_types_type_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.account_types_type_id_seq OWNER TO postgres;
+ALTER TABLE public.account_types_type_id_seq OWNER TO bank;
 
 --
--- Name: account_types_type_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: account_types_type_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: bank
 --
 
 ALTER SEQUENCE public.account_types_type_id_seq OWNED BY public.account_types.type_id;
 
 
 --
--- Name: approval; Type: TABLE; Schema: public; Owner: postgres
+-- Name: approval; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.approval (
@@ -84,10 +84,10 @@ CREATE TABLE public.approval (
 );
 
 
-ALTER TABLE public.approval OWNER TO postgres;
+ALTER TABLE public.approval OWNER TO bank;
 
 --
--- Name: approval_approval_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: approval_approval_id_seq; Type: SEQUENCE; Schema: public; Owner: bank
 --
 
 CREATE SEQUENCE public.approval_approval_id_seq
@@ -99,17 +99,17 @@ CREATE SEQUENCE public.approval_approval_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.approval_approval_id_seq OWNER TO postgres;
+ALTER TABLE public.approval_approval_id_seq OWNER TO bank;
 
 --
--- Name: approval_approval_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: approval_approval_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: bank
 --
 
 ALTER SEQUENCE public.approval_approval_id_seq OWNED BY public.approval.approval_id;
 
 
 --
--- Name: bank; Type: TABLE; Schema: public; Owner: postgres
+-- Name: bank; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.bank (
@@ -122,10 +122,10 @@ CREATE TABLE public.bank (
 );
 
 
-ALTER TABLE public.bank OWNER TO postgres;
+ALTER TABLE public.bank OWNER TO bank;
 
 --
--- Name: bank_bank_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: bank_bank_id_seq; Type: SEQUENCE; Schema: public; Owner: bank
 --
 
 CREATE SEQUENCE public.bank_bank_id_seq
@@ -137,17 +137,17 @@ CREATE SEQUENCE public.bank_bank_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.bank_bank_id_seq OWNER TO postgres;
+ALTER TABLE public.bank_bank_id_seq OWNER TO bank;
 
 --
--- Name: bank_bank_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: bank_bank_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: bank
 --
 
 ALTER SEQUENCE public.bank_bank_id_seq OWNED BY public.bank.bank_id;
 
 
 --
--- Name: branch; Type: TABLE; Schema: public; Owner: postgres
+-- Name: branch; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.branch (
@@ -160,10 +160,10 @@ CREATE TABLE public.branch (
 );
 
 
-ALTER TABLE public.branch OWNER TO postgres;
+ALTER TABLE public.branch OWNER TO bank;
 
 --
--- Name: customer; Type: TABLE; Schema: public; Owner: postgres
+-- Name: customer; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.customer (
@@ -179,10 +179,10 @@ CREATE TABLE public.customer (
 );
 
 
-ALTER TABLE public.customer OWNER TO postgres;
+ALTER TABLE public.customer OWNER TO bank;
 
 --
--- Name: customer_customer_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: customer_customer_id_seq; Type: SEQUENCE; Schema: public; Owner: bank
 --
 
 CREATE SEQUENCE public.customer_customer_id_seq
@@ -194,17 +194,17 @@ CREATE SEQUENCE public.customer_customer_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.customer_customer_id_seq OWNER TO postgres;
+ALTER TABLE public.customer_customer_id_seq OWNER TO bank;
 
 --
--- Name: customer_customer_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: customer_customer_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: bank
 --
 
 ALTER SEQUENCE public.customer_customer_id_seq OWNED BY public.customer.customer_id;
 
 
 --
--- Name: employee; Type: TABLE; Schema: public; Owner: postgres
+-- Name: employee; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.employee (
@@ -220,10 +220,10 @@ CREATE TABLE public.employee (
 );
 
 
-ALTER TABLE public.employee OWNER TO postgres;
+ALTER TABLE public.employee OWNER TO bank;
 
 --
--- Name: employee_employee_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: employee_employee_id_seq; Type: SEQUENCE; Schema: public; Owner: bank
 --
 
 CREATE SEQUENCE public.employee_employee_id_seq
@@ -235,17 +235,17 @@ CREATE SEQUENCE public.employee_employee_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.employee_employee_id_seq OWNER TO postgres;
+ALTER TABLE public.employee_employee_id_seq OWNER TO bank;
 
 --
--- Name: employee_employee_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: employee_employee_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: bank
 --
 
 ALTER SEQUENCE public.employee_employee_id_seq OWNED BY public.employee.employee_id;
 
 
 --
--- Name: loan; Type: TABLE; Schema: public; Owner: postgres
+-- Name: loan; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.loan (
@@ -258,10 +258,10 @@ CREATE TABLE public.loan (
 );
 
 
-ALTER TABLE public.loan OWNER TO postgres;
+ALTER TABLE public.loan OWNER TO bank;
 
 --
--- Name: loan_loan_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: loan_loan_id_seq; Type: SEQUENCE; Schema: public; Owner: bank
 --
 
 CREATE SEQUENCE public.loan_loan_id_seq
@@ -273,17 +273,17 @@ CREATE SEQUENCE public.loan_loan_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.loan_loan_id_seq OWNER TO postgres;
+ALTER TABLE public.loan_loan_id_seq OWNER TO bank;
 
 --
--- Name: loan_loan_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: loan_loan_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: bank
 --
 
 ALTER SEQUENCE public.loan_loan_id_seq OWNED BY public.loan.loan_id;
 
 
 --
--- Name: transaction; Type: TABLE; Schema: public; Owner: postgres
+-- Name: transaction; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.transaction (
@@ -295,10 +295,10 @@ CREATE TABLE public.transaction (
 );
 
 
-ALTER TABLE public.transaction OWNER TO postgres;
+ALTER TABLE public.transaction OWNER TO bank;
 
 --
--- Name: transaction_transaction_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+-- Name: transaction_transaction_id_seq; Type: SEQUENCE; Schema: public; Owner: bank
 --
 
 CREATE SEQUENCE public.transaction_transaction_id_seq
@@ -310,66 +310,66 @@ CREATE SEQUENCE public.transaction_transaction_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.transaction_transaction_id_seq OWNER TO postgres;
+ALTER TABLE public.transaction_transaction_id_seq OWNER TO bank;
 
 --
--- Name: transaction_transaction_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+-- Name: transaction_transaction_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: bank
 --
 
 ALTER SEQUENCE public.transaction_transaction_id_seq OWNED BY public.transaction.transaction_id;
 
 
 --
--- Name: account_types type_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: account_types type_id; Type: DEFAULT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.account_types ALTER COLUMN type_id SET DEFAULT nextval('public.account_types_type_id_seq'::regclass);
 
 
 --
--- Name: approval approval_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: approval approval_id; Type: DEFAULT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.approval ALTER COLUMN approval_id SET DEFAULT nextval('public.approval_approval_id_seq'::regclass);
 
 
 --
--- Name: bank bank_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: bank bank_id; Type: DEFAULT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.bank ALTER COLUMN bank_id SET DEFAULT nextval('public.bank_bank_id_seq'::regclass);
 
 
 --
--- Name: customer customer_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: customer customer_id; Type: DEFAULT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.customer ALTER COLUMN customer_id SET DEFAULT nextval('public.customer_customer_id_seq'::regclass);
 
 
 --
--- Name: employee employee_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: employee employee_id; Type: DEFAULT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.employee ALTER COLUMN employee_id SET DEFAULT nextval('public.employee_employee_id_seq'::regclass);
 
 
 --
--- Name: loan loan_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: loan loan_id; Type: DEFAULT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.loan ALTER COLUMN loan_id SET DEFAULT nextval('public.loan_loan_id_seq'::regclass);
 
 
 --
--- Name: transaction transaction_id; Type: DEFAULT; Schema: public; Owner: postgres
+-- Name: transaction transaction_id; Type: DEFAULT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.transaction ALTER COLUMN transaction_id SET DEFAULT nextval('public.transaction_transaction_id_seq'::regclass);
 
 
 --
--- Data for Name: account; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: account; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.account (account_number, sort_code, customer_id, type_id, balance, name, iban, open_date) FROM stdin;
@@ -377,7 +377,7 @@ COPY public.account (account_number, sort_code, customer_id, type_id, balance, n
 
 
 --
--- Data for Name: account_types; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: account_types; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.account_types (type_id, type_name) FROM stdin;
@@ -385,7 +385,7 @@ COPY public.account_types (type_id, type_name) FROM stdin;
 
 
 --
--- Data for Name: approval; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: approval; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.approval (approval_id, employee_id, date, approval_flag) FROM stdin;
@@ -393,7 +393,7 @@ COPY public.approval (approval_id, employee_id, date, approval_flag) FROM stdin;
 
 
 --
--- Data for Name: bank; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: bank; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.bank (bank_id, name, bic, address, postcode, country) FROM stdin;
@@ -401,7 +401,7 @@ COPY public.bank (bank_id, name, bic, address, postcode, country) FROM stdin;
 
 
 --
--- Data for Name: branch; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: branch; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.branch (sort_code, bank_id, name, address, postcode, country) FROM stdin;
@@ -409,7 +409,7 @@ COPY public.branch (sort_code, bank_id, name, address, postcode, country) FROM s
 
 
 --
--- Data for Name: customer; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: customer; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.customer (customer_id, username, password, first_name, last_name, mobile_number, email, address, postcode) FROM stdin;
@@ -417,7 +417,7 @@ COPY public.customer (customer_id, username, password, first_name, last_name, mo
 
 
 --
--- Data for Name: employee; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: employee; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.employee (employee_id, sort_code, role, first_name, last_name, mobile_number, email, address, postcode) FROM stdin;
@@ -425,7 +425,7 @@ COPY public.employee (employee_id, sort_code, role, first_name, last_name, mobil
 
 
 --
--- Data for Name: loan; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: loan; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.loan (loan_id, account_number, amount, interest_rate, apr, term) FROM stdin;
@@ -433,7 +433,7 @@ COPY public.loan (loan_id, account_number, amount, interest_rate, apr, term) FRO
 
 
 --
--- Data for Name: transaction; Type: TABLE DATA; Schema: public; Owner: postgres
+-- Data for Name: transaction; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.transaction (transaction_id, account_number, description, sensitive_flag, approval_id) FROM stdin;
@@ -441,56 +441,56 @@ COPY public.transaction (transaction_id, account_number, description, sensitive_
 
 
 --
--- Name: account_types_type_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: account_types_type_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
 SELECT pg_catalog.setval('public.account_types_type_id_seq', 1, false);
 
 
 --
--- Name: approval_approval_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: approval_approval_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
 SELECT pg_catalog.setval('public.approval_approval_id_seq', 1, false);
 
 
 --
--- Name: bank_bank_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: bank_bank_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
 SELECT pg_catalog.setval('public.bank_bank_id_seq', 1, false);
 
 
 --
--- Name: customer_customer_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: customer_customer_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
 SELECT pg_catalog.setval('public.customer_customer_id_seq', 1, false);
 
 
 --
--- Name: employee_employee_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: employee_employee_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
 SELECT pg_catalog.setval('public.employee_employee_id_seq', 1, false);
 
 
 --
--- Name: loan_loan_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: loan_loan_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
 SELECT pg_catalog.setval('public.loan_loan_id_seq', 1, false);
 
 
 --
--- Name: transaction_transaction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+-- Name: transaction_transaction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
 SELECT pg_catalog.setval('public.transaction_transaction_id_seq', 1, false);
 
 
 --
--- Name: account account_iban_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: account account_iban_key; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.account
@@ -498,7 +498,7 @@ ALTER TABLE ONLY public.account
 
 
 --
--- Name: account account_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: account account_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.account
@@ -506,7 +506,7 @@ ALTER TABLE ONLY public.account
 
 
 --
--- Name: account_types account_types_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: account_types account_types_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.account_types
@@ -514,7 +514,7 @@ ALTER TABLE ONLY public.account_types
 
 
 --
--- Name: approval approval_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: approval approval_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.approval
@@ -522,7 +522,7 @@ ALTER TABLE ONLY public.approval
 
 
 --
--- Name: bank bank_bic_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: bank bank_bic_key; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.bank
@@ -530,7 +530,7 @@ ALTER TABLE ONLY public.bank
 
 
 --
--- Name: bank bank_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: bank bank_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.bank
@@ -538,7 +538,7 @@ ALTER TABLE ONLY public.bank
 
 
 --
--- Name: branch branch_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: branch branch_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.branch
@@ -546,7 +546,7 @@ ALTER TABLE ONLY public.branch
 
 
 --
--- Name: customer customer_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: customer customer_email_key; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.customer
@@ -554,7 +554,7 @@ ALTER TABLE ONLY public.customer
 
 
 --
--- Name: customer customer_mobile_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: customer customer_mobile_number_key; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.customer
@@ -562,7 +562,7 @@ ALTER TABLE ONLY public.customer
 
 
 --
--- Name: customer customer_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: customer customer_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.customer
@@ -570,7 +570,7 @@ ALTER TABLE ONLY public.customer
 
 
 --
--- Name: customer customer_username_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: customer customer_username_key; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.customer
@@ -578,7 +578,7 @@ ALTER TABLE ONLY public.customer
 
 
 --
--- Name: employee employee_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employee employee_email_key; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.employee
@@ -586,7 +586,7 @@ ALTER TABLE ONLY public.employee
 
 
 --
--- Name: employee employee_mobile_number_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employee employee_mobile_number_key; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.employee
@@ -594,7 +594,7 @@ ALTER TABLE ONLY public.employee
 
 
 --
--- Name: employee employee_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employee employee_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.employee
@@ -602,7 +602,7 @@ ALTER TABLE ONLY public.employee
 
 
 --
--- Name: loan loan_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: loan loan_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.loan
@@ -610,7 +610,7 @@ ALTER TABLE ONLY public.loan
 
 
 --
--- Name: transaction transaction_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+-- Name: transaction transaction_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.transaction
@@ -618,7 +618,7 @@ ALTER TABLE ONLY public.transaction
 
 
 --
--- Name: account account_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: account account_customer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.account
@@ -626,7 +626,7 @@ ALTER TABLE ONLY public.account
 
 
 --
--- Name: account account_sort_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: account account_sort_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.account
@@ -634,7 +634,7 @@ ALTER TABLE ONLY public.account
 
 
 --
--- Name: account account_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: account account_type_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.account
@@ -642,7 +642,7 @@ ALTER TABLE ONLY public.account
 
 
 --
--- Name: approval approval_employee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: approval approval_employee_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.approval
@@ -650,7 +650,7 @@ ALTER TABLE ONLY public.approval
 
 
 --
--- Name: branch branch_bank_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: branch branch_bank_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.branch
@@ -658,7 +658,7 @@ ALTER TABLE ONLY public.branch
 
 
 --
--- Name: employee employee_sort_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: employee employee_sort_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.employee
@@ -666,7 +666,7 @@ ALTER TABLE ONLY public.employee
 
 
 --
--- Name: loan loan_account_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: loan loan_account_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.loan
@@ -674,7 +674,7 @@ ALTER TABLE ONLY public.loan
 
 
 --
--- Name: transaction transaction_account_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: transaction transaction_account_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.transaction
@@ -682,7 +682,7 @@ ALTER TABLE ONLY public.transaction
 
 
 --
--- Name: transaction transaction_approval_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+-- Name: transaction transaction_approval_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.transaction
