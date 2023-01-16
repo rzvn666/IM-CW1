@@ -216,7 +216,9 @@ CREATE TABLE public.employee (
     mobile_number character(11) NOT NULL,
     email character varying(50) NOT NULL,
     address character varying(255) NOT NULL,
-    postcode character varying(10) NOT NULL
+    postcode character varying(10) NOT NULL,
+    username character varying(255) NOT NULL,
+    password character varying(255) NOT NULL
 );
 
 
@@ -254,7 +256,8 @@ CREATE TABLE public.loan (
     amount integer NOT NULL,
     interest_rate real NOT NULL,
     apr real NOT NULL,
-    term integer NOT NULL
+    term integer NOT NULL,
+    transaction_id integer NOT NULL
 );
 
 
@@ -283,15 +286,56 @@ ALTER SEQUENCE public.loan_loan_id_seq OWNED BY public.loan.loan_id;
 
 
 --
+-- Name: payment; Type: TABLE; Schema: public; Owner: bank
+--
+
+CREATE TABLE public.payment (
+    payment_id integer NOT NULL,
+    transaction_id integer NOT NULL,
+    account_number character(8) NOT NULL,
+    receiver_accnum character(8) NOT NULL,
+    receiver_sortcode character(6) NOT NULL,
+    receiver_name character varying(255) NOT NULL,
+    amount integer NOT NULL,
+    date date NOT NULL
+);
+
+
+ALTER TABLE public.payment OWNER TO bank;
+
+--
+-- Name: payment_payment_id_seq; Type: SEQUENCE; Schema: public; Owner: bank
+--
+
+CREATE SEQUENCE public.payment_payment_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.payment_payment_id_seq OWNER TO bank;
+
+--
+-- Name: payment_payment_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: bank
+--
+
+ALTER SEQUENCE public.payment_payment_id_seq OWNED BY public.payment.payment_id;
+
+
+--
 -- Name: transaction; Type: TABLE; Schema: public; Owner: bank
 --
 
 CREATE TABLE public.transaction (
     transaction_id integer NOT NULL,
-    account_number character(8) NOT NULL,
-    description character varying(255) NOT NULL,
     sensitive_flag character(1) NOT NULL,
-    approval_id integer NOT NULL
+    approval_id integer NOT NULL,
+    transfer_id integer,
+    payment_id integer,
+    loan_id integer
 );
 
 
@@ -317,6 +361,44 @@ ALTER TABLE public.transaction_transaction_id_seq OWNER TO bank;
 --
 
 ALTER SEQUENCE public.transaction_transaction_id_seq OWNED BY public.transaction.transaction_id;
+
+
+--
+-- Name: transfer; Type: TABLE; Schema: public; Owner: bank
+--
+
+CREATE TABLE public.transfer (
+    transfer_id integer NOT NULL,
+    transaction_id integer NOT NULL,
+    account_number character(8) NOT NULL,
+    receiver_accnum character(8) NOT NULL,
+    amount integer NOT NULL,
+    date date NOT NULL
+);
+
+
+ALTER TABLE public.transfer OWNER TO bank;
+
+--
+-- Name: transfer_transfer_id_seq; Type: SEQUENCE; Schema: public; Owner: bank
+--
+
+CREATE SEQUENCE public.transfer_transfer_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.transfer_transfer_id_seq OWNER TO bank;
+
+--
+-- Name: transfer_transfer_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: bank
+--
+
+ALTER SEQUENCE public.transfer_transfer_id_seq OWNED BY public.transfer.transfer_id;
 
 
 --
@@ -362,6 +444,13 @@ ALTER TABLE ONLY public.loan ALTER COLUMN loan_id SET DEFAULT nextval('public.lo
 
 
 --
+-- Name: payment payment_id; Type: DEFAULT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.payment ALTER COLUMN payment_id SET DEFAULT nextval('public.payment_payment_id_seq'::regclass);
+
+
+--
 -- Name: transaction transaction_id; Type: DEFAULT; Schema: public; Owner: bank
 --
 
@@ -369,10 +458,18 @@ ALTER TABLE ONLY public.transaction ALTER COLUMN transaction_id SET DEFAULT next
 
 
 --
+-- Name: transfer transfer_id; Type: DEFAULT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transfer ALTER COLUMN transfer_id SET DEFAULT nextval('public.transfer_transfer_id_seq'::regclass);
+
+
+--
 -- Data for Name: account; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
 COPY public.account (account_number, sort_code, customer_id, type_id, balance, name, iban, open_date) FROM stdin;
+68932868	309921	1	1	0	bank account	GB73LOYD30992168932868	2023-01-16
 \.
 
 
@@ -381,6 +478,7 @@ COPY public.account (account_number, sort_code, customer_id, type_id, balance, n
 --
 
 COPY public.account_types (type_id, type_name) FROM stdin;
+1	Current Account
 \.
 
 
@@ -397,6 +495,7 @@ COPY public.approval (approval_id, employee_id, date, approval_flag) FROM stdin;
 --
 
 COPY public.bank (bank_id, name, bic, address, postcode, country) FROM stdin;
+1	LLOYDS PANK PLC	LOYDGB2LXXX	25 MONUMENT STREET	EC3R8BQ	United Kingdom
 \.
 
 
@@ -405,6 +504,7 @@ COPY public.bank (bank_id, name, bic, address, postcode, country) FROM stdin;
 --
 
 COPY public.branch (sort_code, bank_id, name, address, postcode, country) FROM stdin;
+309921	1	Lloyds Bank Watford	Po Box 1000	BX11LT	United Kingdom
 \.
 
 
@@ -413,6 +513,7 @@ COPY public.branch (sort_code, bank_id, name, address, postcode, country) FROM s
 --
 
 COPY public.customer (customer_id, username, password, first_name, last_name, mobile_number, email, address, postcode) FROM stdin;
+1	testuser	testuser	Andrew	Ferguson	7941083085 	andrewferguson@gmail.com	10 Abbey Close, Coventry	CV56HN
 \.
 
 
@@ -420,7 +521,9 @@ COPY public.customer (customer_id, username, password, first_name, last_name, mo
 -- Data for Name: employee; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
-COPY public.employee (employee_id, sort_code, role, first_name, last_name, mobile_number, email, address, postcode) FROM stdin;
+COPY public.employee (employee_id, sort_code, role, first_name, last_name, mobile_number, email, address, postcode, username, password) FROM stdin;
+1	309921	employee	John	Doe	07495381704	johndoe@gmail.com	321 Regent Street	N127JE	employeeuser	employeepass
+2	309921	manager	Jane	Doe	07495385874	janedoe@gmail.com	1 Market Street	W36PE	manageruser	managerpass
 \.
 
 
@@ -428,7 +531,15 @@ COPY public.employee (employee_id, sort_code, role, first_name, last_name, mobil
 -- Data for Name: loan; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
-COPY public.loan (loan_id, account_number, amount, interest_rate, apr, term) FROM stdin;
+COPY public.loan (loan_id, account_number, amount, interest_rate, apr, term, transaction_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: payment; Type: TABLE DATA; Schema: public; Owner: bank
+--
+
+COPY public.payment (payment_id, transaction_id, account_number, receiver_accnum, receiver_sortcode, receiver_name, amount, date) FROM stdin;
 \.
 
 
@@ -436,7 +547,15 @@ COPY public.loan (loan_id, account_number, amount, interest_rate, apr, term) FRO
 -- Data for Name: transaction; Type: TABLE DATA; Schema: public; Owner: bank
 --
 
-COPY public.transaction (transaction_id, account_number, description, sensitive_flag, approval_id) FROM stdin;
+COPY public.transaction (transaction_id, sensitive_flag, approval_id, transfer_id, payment_id, loan_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: transfer; Type: TABLE DATA; Schema: public; Owner: bank
+--
+
+COPY public.transfer (transfer_id, transaction_id, account_number, receiver_accnum, amount, date) FROM stdin;
 \.
 
 
@@ -444,7 +563,7 @@ COPY public.transaction (transaction_id, account_number, description, sensitive_
 -- Name: account_types_type_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
-SELECT pg_catalog.setval('public.account_types_type_id_seq', 1, false);
+SELECT pg_catalog.setval('public.account_types_type_id_seq', 1, true);
 
 
 --
@@ -458,14 +577,14 @@ SELECT pg_catalog.setval('public.approval_approval_id_seq', 1, false);
 -- Name: bank_bank_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
-SELECT pg_catalog.setval('public.bank_bank_id_seq', 1, false);
+SELECT pg_catalog.setval('public.bank_bank_id_seq', 1, true);
 
 
 --
 -- Name: customer_customer_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
-SELECT pg_catalog.setval('public.customer_customer_id_seq', 1, false);
+SELECT pg_catalog.setval('public.customer_customer_id_seq', 4, true);
 
 
 --
@@ -483,10 +602,32 @@ SELECT pg_catalog.setval('public.loan_loan_id_seq', 1, false);
 
 
 --
+-- Name: payment_payment_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
+--
+
+SELECT pg_catalog.setval('public.payment_payment_id_seq', 1, false);
+
+
+--
 -- Name: transaction_transaction_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
 --
 
 SELECT pg_catalog.setval('public.transaction_transaction_id_seq', 1, false);
+
+
+--
+-- Name: transfer_transfer_id_seq; Type: SEQUENCE SET; Schema: public; Owner: bank
+--
+
+SELECT pg_catalog.setval('public.transfer_transfer_id_seq', 1, false);
+
+
+--
+-- Name: account account_account_number_key; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.account
+    ADD CONSTRAINT account_account_number_key UNIQUE (account_number);
 
 
 --
@@ -602,6 +743,14 @@ ALTER TABLE ONLY public.employee
 
 
 --
+-- Name: employee employee_username_key; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.employee
+    ADD CONSTRAINT employee_username_key UNIQUE (username);
+
+
+--
 -- Name: loan loan_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
@@ -610,11 +759,75 @@ ALTER TABLE ONLY public.loan
 
 
 --
+-- Name: loan loan_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.loan
+    ADD CONSTRAINT loan_transaction_id_key UNIQUE (transaction_id);
+
+
+--
+-- Name: payment payment_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_pkey PRIMARY KEY (payment_id);
+
+
+--
+-- Name: payment payment_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_transaction_id_key UNIQUE (transaction_id);
+
+
+--
+-- Name: transaction transaction_loan_id_key; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transaction
+    ADD CONSTRAINT transaction_loan_id_key UNIQUE (loan_id);
+
+
+--
+-- Name: transaction transaction_payment_id_key; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transaction
+    ADD CONSTRAINT transaction_payment_id_key UNIQUE (payment_id);
+
+
+--
 -- Name: transaction transaction_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
 --
 
 ALTER TABLE ONLY public.transaction
     ADD CONSTRAINT transaction_pkey PRIMARY KEY (transaction_id);
+
+
+--
+-- Name: transaction transaction_transfer_id_key; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transaction
+    ADD CONSTRAINT transaction_transfer_id_key UNIQUE (transfer_id);
+
+
+--
+-- Name: transfer transfer_pkey; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transfer
+    ADD CONSTRAINT transfer_pkey PRIMARY KEY (transfer_id);
+
+
+--
+-- Name: transfer transfer_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transfer
+    ADD CONSTRAINT transfer_transaction_id_key UNIQUE (transaction_id);
 
 
 --
@@ -674,11 +887,27 @@ ALTER TABLE ONLY public.loan
 
 
 --
--- Name: transaction transaction_account_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
+-- Name: loan loan_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
 --
 
-ALTER TABLE ONLY public.transaction
-    ADD CONSTRAINT transaction_account_number_fkey FOREIGN KEY (account_number) REFERENCES public.account(account_number);
+ALTER TABLE ONLY public.loan
+    ADD CONSTRAINT loan_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transaction(transaction_id);
+
+
+--
+-- Name: payment payment_account_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_account_number_fkey FOREIGN KEY (account_number) REFERENCES public.account(account_number);
+
+
+--
+-- Name: payment payment_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.payment
+    ADD CONSTRAINT payment_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transaction(transaction_id);
 
 
 --
@@ -687,6 +916,54 @@ ALTER TABLE ONLY public.transaction
 
 ALTER TABLE ONLY public.transaction
     ADD CONSTRAINT transaction_approval_id_fkey FOREIGN KEY (approval_id) REFERENCES public.approval(approval_id);
+
+
+--
+-- Name: transaction transaction_loan_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transaction
+    ADD CONSTRAINT transaction_loan_id_fkey FOREIGN KEY (loan_id) REFERENCES public.loan(loan_id);
+
+
+--
+-- Name: transaction transaction_payment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transaction
+    ADD CONSTRAINT transaction_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES public.payment(payment_id);
+
+
+--
+-- Name: transaction transaction_transfer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transaction
+    ADD CONSTRAINT transaction_transfer_id_fkey FOREIGN KEY (transfer_id) REFERENCES public.transfer(transfer_id);
+
+
+--
+-- Name: transfer transfer_account_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transfer
+    ADD CONSTRAINT transfer_account_number_fkey FOREIGN KEY (account_number) REFERENCES public.account(account_number);
+
+
+--
+-- Name: transfer transfer_receiver_accnum_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transfer
+    ADD CONSTRAINT transfer_receiver_accnum_fkey FOREIGN KEY (receiver_accnum) REFERENCES public.account(account_number);
+
+
+--
+-- Name: transfer transfer_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: bank
+--
+
+ALTER TABLE ONLY public.transfer
+    ADD CONSTRAINT transfer_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transaction(transaction_id);
 
 
 --
