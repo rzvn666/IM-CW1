@@ -1,0 +1,1036 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 15.1
+-- Dumped by pg_dump version 15.1
+
+
+-- SET statement_timeout = 0;
+-- SET lock_timeout = 0;
+-- SET idle_in_transaction_session_timeout = 0;
+-- SET client_encoding = 'UTF8';
+-- SET standard_conforming_strings = on;
+-- SELECT pg_catalog.set_config('search_path', '', false);
+-- SET check_function_bodies = false;
+-- SET xmloption = content;
+-- SET client_min_messages = warning;
+-- SET row_security = off;
+
+-- SET default_tablespace = '';
+
+-- SET default_table_access_method = heap;
+
+DROP ROLE role_bank;
+DROP ROLE role_employee;
+DROP ROLE role_manager;
+DROP ROLE role_customer;
+
+DROP ROLE user_bank1;
+DROP ROLE user_employee1;
+DROP ROLE user_manager1;
+DROP ROLE user_customer1;
+
+CREATE SCHEMA bank;
+CREATE SCHEMA employee;
+CREATE SCHEMA manager;
+CREATE SCHEMA customer;
+
+--
+-- Name: account; Type: TABLE; Schema: customer
+--
+
+CREATE TABLE customer.account (
+    account_number character(8) NOT NULL,
+    sort_code character(6) NOT NULL,
+    customer_id integer NOT NULL,
+    type_id integer NOT NULL,
+    balance integer NOT NULL,
+    account_name character varying(255) NOT NULL,
+    iban character varying(34) NOT NULL,
+    open_date date NOT NULL
+);
+
+--
+-- Name: account_types; Type: TABLE; Schema: bank
+--
+
+CREATE TABLE bank.account_types (
+    type_id integer NOT NULL,
+    type_name character varying(100) NOT NULL
+);
+
+--
+-- Name: account_types_type_id_seq; Type: SEQUENCE; Schema: bank
+--
+
+CREATE SEQUENCE bank.account_types_type_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+--
+-- Name: account_types_type_id_seq; Type: SEQUENCE OWNED BY; Schema: bank
+--
+
+ALTER SEQUENCE bank.account_types_type_id_seq OWNED BY bank.account_types.type_id;
+
+
+--
+-- Name: approval; Type: TABLE; Schema: manager
+--
+
+CREATE TABLE manager.approval (
+    approval_id integer NOT NULL,
+    employee_id integer NOT NULL,
+    date date NOT NULL,
+    approval_flag boolean NOT NULL
+);
+
+
+
+--
+-- Name: approval_approval_id_seq; Type: SEQUENCE; Schema: manager
+--
+
+CREATE SEQUENCE manager.approval_approval_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+--
+-- Name: approval_approval_id_seq; Type: SEQUENCE OWNED BY; Schema: manager
+--
+
+ALTER SEQUENCE manager.approval_approval_id_seq OWNED BY manager.approval.approval_id;
+
+
+--
+-- Name: bank; Type: TABLE; Schema: bank
+--
+
+CREATE TABLE bank.bank (
+    bank_id integer NOT NULL,
+    bank_name character varying(50) NOT NULL,
+    bic character(11) NOT NULL,
+    address character varying(255) NOT NULL,
+    postcode character varying(10) NOT NULL,
+    country character varying(60) NOT NULL
+);
+
+
+
+--
+-- Name: bank_bank_id_seq; Type: SEQUENCE; Schema: bank
+--
+
+CREATE SEQUENCE bank.bank_bank_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+--
+-- Name: bank_bank_id_seq; Type: SEQUENCE OWNED BY; Schema: bank
+--
+
+ALTER SEQUENCE bank.bank_bank_id_seq OWNED BY bank.bank.bank_id;
+
+
+--
+-- Name: branch; Type: TABLE; Schema: bank
+--
+
+CREATE TABLE bank.branch (
+    sort_code character(6) NOT NULL,
+    bank_id integer NOT NULL,
+    branch_name character varying(50) NOT NULL,
+    address character varying(255) NOT NULL,
+    postcode character varying(10) NOT NULL,
+    country character varying(60) NOT NULL
+);
+
+
+
+--
+-- Name: customer; Type: TABLE; Schema: customer
+--
+
+CREATE TABLE customer.customer (
+    customer_id integer NOT NULL,
+    username character varying(30) NOT NULL,
+    password character varying(255) NOT NULL,
+    first_name character varying(255) NOT NULL,
+    last_name character varying(255) NOT NULL,
+    mobile_number character(11) NOT NULL,
+    email character varying(50) NOT NULL,
+    address character varying(255) NOT NULL,
+    postcode character varying(10) NOT NULL
+);
+
+
+
+--
+-- Name: customer_customer_id_seq; Type: SEQUENCE; Schema: customer
+--
+
+CREATE SEQUENCE customer.customer_customer_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+--
+-- Name: customer_customer_id_seq; Type: SEQUENCE OWNED BY; Schema: customer
+--
+
+ALTER SEQUENCE customer.customer_customer_id_seq OWNED BY customer.customer.customer_id;
+
+
+--
+-- Name: employee; Type: TABLE; Schema: employee
+--
+
+CREATE TABLE employee.employee (
+    employee_id integer NOT NULL,
+    sort_code character(6) NOT NULL,
+    role character varying(50) NOT NULL,
+    first_name character varying(50) NOT NULL,
+    last_name character varying(50) NOT NULL,
+    mobile_number character(11) NOT NULL,
+    email character varying(50) NOT NULL,
+    address character varying(255) NOT NULL,
+    postcode character varying(10) NOT NULL,
+    username character varying(255) NOT NULL,
+    password character varying(255) NOT NULL
+);
+
+
+
+--
+-- Name: employee_employee_id_seq; Type: SEQUENCE; Schema: employee
+--
+
+CREATE SEQUENCE employee.employee_employee_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+--
+-- Name: employee_employee_id_seq; Type: SEQUENCE OWNED BY; Schema: employee
+--
+
+ALTER SEQUENCE employee.employee_employee_id_seq OWNED BY employee.employee.employee_id;
+
+
+--
+-- Name: loan; Type: TABLE; Schema: bank
+--
+
+CREATE TABLE bank.loan (
+    loan_id integer NOT NULL,
+    account_number character(8) NOT NULL,
+    amount integer NOT NULL,
+    interest_rate real NOT NULL,
+    apr real NOT NULL,
+    term integer NOT NULL
+);
+
+
+
+--
+-- Name: loan_loan_id_seq; Type: SEQUENCE; Schema: bank
+--
+
+CREATE SEQUENCE bank.loan_loan_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+--
+-- Name: loan_loan_id_seq; Type: SEQUENCE OWNED BY; Schema: bank
+--
+
+ALTER SEQUENCE bank.loan_loan_id_seq OWNED BY bank.loan.loan_id;
+
+
+--
+-- Name: payment; Type: TABLE; Schema: customer
+--
+
+CREATE TABLE customer.payment (
+    payment_id integer NOT NULL,
+    account_number character(8) NOT NULL,
+    receiver_accnum character(8) NOT NULL,
+    receiver_sortcode character(6) NOT NULL,
+    receiver_name character varying(255) NOT NULL,
+    amount integer NOT NULL,
+    date date NOT NULL
+);
+
+
+
+--
+-- Name: payment_payment_id_seq; Type: SEQUENCE; Schema: customer
+--
+
+CREATE SEQUENCE customer.payment_payment_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+--
+-- Name: payment_payment_id_seq; Type: SEQUENCE OWNED BY; Schema: customer
+--
+
+ALTER SEQUENCE customer.payment_payment_id_seq OWNED BY customer.payment.payment_id;
+
+
+--
+-- Name: transaction; Type: TABLE; Schema: customer
+--
+
+CREATE TABLE customer.transaction (
+    transaction_id integer NOT NULL,
+    sensitive_flag boolean NOT NULL,
+    approval_id integer,
+    transfer_id integer,
+    payment_id integer,
+    loan_id integer
+);
+
+
+
+
+
+--
+-- Name: transaction_transaction_id_seq; Type: SEQUENCE; Schema: customer
+--
+
+CREATE SEQUENCE customer.transaction_transaction_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+--
+-- Name: transaction_transaction_id_seq; Type: SEQUENCE OWNED BY; Schema: customer
+--
+
+ALTER SEQUENCE customer.transaction_transaction_id_seq OWNED BY customer.transaction.transaction_id;
+
+
+--
+-- Name: transfer; Type: TABLE; Schema: customer
+--
+
+CREATE TABLE customer.transfer (
+    transfer_id integer NOT NULL,
+    account_number character(8) NOT NULL,
+    receiver_accnum character(8) NOT NULL,
+    amount integer NOT NULL,
+    date date NOT NULL
+);
+
+CREATE TABLE transaction_pending (
+    pending_transaction_id SERIAL PRIMARY KEY,
+    pending_sensitive_flag BOOLEAN NOT NULL,
+    pending_approval_id INTEGER REFERENCES manager.approval(approval_id) UNIQUE,
+    pending_transfer_id INTEGER REFERENCES customer.transfer(transfer_id) UNIQUE,
+    pending_payment_id INTEGER REFERENCES customer.payment(payment_id) UNIQUE,
+    pending_loan_id INTEGER REFERENCES bank.loan(loan_id) UNIQUE
+);
+
+--
+-- Name: transfer_transfer_id_seq; Type: SEQUENCE; Schema: customer
+--
+
+CREATE SEQUENCE customer.transfer_transfer_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+
+--
+-- Name: transfer_transfer_id_seq; Type: SEQUENCE OWNED BY; Schema: customer
+--
+
+ALTER SEQUENCE customer.transfer_transfer_id_seq OWNED BY customer.transfer.transfer_id;
+
+
+--
+-- Name: account_types type_id; Type: DEFAULT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.account_types ALTER COLUMN type_id SET DEFAULT nextval('bank.account_types_type_id_seq'::regclass);
+
+
+--
+-- Name: approval approval_id; Type: DEFAULT; Schema: manager
+--
+
+ALTER TABLE ONLY manager.approval ALTER COLUMN approval_id SET DEFAULT nextval('manager.approval_approval_id_seq'::regclass);
+
+
+--
+-- Name: bank bank_id; Type: DEFAULT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.bank ALTER COLUMN bank_id SET DEFAULT nextval('bank.bank_bank_id_seq'::regclass);
+
+
+--
+-- Name: customer customer_id; Type: DEFAULT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.customer ALTER COLUMN customer_id SET DEFAULT nextval('customer.customer_customer_id_seq'::regclass);
+
+
+--
+-- Name: employee employee_id; Type: DEFAULT; Schema: employee
+--
+
+ALTER TABLE ONLY employee.employee ALTER COLUMN employee_id SET DEFAULT nextval('employee.employee_employee_id_seq'::regclass);
+
+
+--
+-- Name: loan loan_id; Type: DEFAULT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.loan ALTER COLUMN loan_id SET DEFAULT nextval('bank.loan_loan_id_seq'::regclass);
+
+
+--
+-- Name: payment payment_id; Type: DEFAULT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.payment ALTER COLUMN payment_id SET DEFAULT nextval('customer.payment_payment_id_seq'::regclass);
+
+
+--
+-- Name: transaction transaction_id; Type: DEFAULT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transaction ALTER COLUMN transaction_id SET DEFAULT nextval('customer.transaction_transaction_id_seq'::regclass);
+
+
+--
+-- Name: transfer transfer_id; Type: DEFAULT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transfer ALTER COLUMN transfer_id SET DEFAULT nextval('customer.transfer_transfer_id_seq'::regclass);
+
+
+--
+-- Name: account_types_type_id_seq; Type: SEQUENCE SET; Schema: bank
+--
+
+SELECT pg_catalog.setval('bank.account_types_type_id_seq', 1, true);
+
+
+--
+-- Name: approval_approval_id_seq; Type: SEQUENCE SET; Schema: manager
+--
+
+SELECT pg_catalog.setval('manager.approval_approval_id_seq', 1, false);
+
+
+--
+-- Name: bank_bank_id_seq; Type: SEQUENCE SET; Schema: bank
+--
+
+SELECT pg_catalog.setval('bank.bank_bank_id_seq', 1, true);
+
+
+--
+-- Name: customer_customer_id_seq; Type: SEQUENCE SET; Schema: customer
+--
+
+SELECT pg_catalog.setval('customer.customer_customer_id_seq', 4, true);
+
+
+--
+-- Name: employee_employee_id_seq; Type: SEQUENCE SET; Schema: employee
+--
+
+SELECT pg_catalog.setval('employee.employee_employee_id_seq', 1, false);
+
+
+--
+-- Name: loan_loan_id_seq; Type: SEQUENCE SET; Schema: bank
+--
+
+SELECT pg_catalog.setval('bank.loan_loan_id_seq', 1, false);
+
+
+--
+-- Name: payment_payment_id_seq; Type: SEQUENCE SET; Schema: customer
+--
+
+SELECT pg_catalog.setval('customer.payment_payment_id_seq', 1, false);
+
+
+--
+-- Name: transaction_transaction_id_seq; Type: SEQUENCE SET; Schema: customer
+--
+
+SELECT pg_catalog.setval('customer.transaction_transaction_id_seq', 1, false);
+
+
+--
+-- Name: transfer_transfer_id_seq; Type: SEQUENCE SET; Schema: customer
+--
+
+SELECT pg_catalog.setval('customer.transfer_transfer_id_seq', 1, false);
+
+
+--
+-- Name: account account_account_number_key; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.account
+    ADD CONSTRAINT account_account_number_key UNIQUE (account_number);
+
+
+--
+-- Name: account account_iban_key; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.account
+    ADD CONSTRAINT account_iban_key UNIQUE (iban);
+
+
+--
+-- Name: account account_pkey; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.account
+    ADD CONSTRAINT account_pkey PRIMARY KEY (account_number);
+
+
+--
+-- Name: account_types account_types_pkey; Type: CONSTRAINT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.account_types
+    ADD CONSTRAINT account_types_pkey PRIMARY KEY (type_id);
+
+
+--
+-- Name: approval approval_pkey; Type: CONSTRAINT; Schema: manager
+--
+
+ALTER TABLE ONLY manager.approval
+    ADD CONSTRAINT approval_pkey PRIMARY KEY (approval_id);
+
+
+--
+-- Name: bank bank_bic_key; Type: CONSTRAINT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.bank
+    ADD CONSTRAINT bank_bic_key UNIQUE (bic);
+
+
+--
+-- Name: bank bank_pkey; Type: CONSTRAINT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.bank
+    ADD CONSTRAINT bank_pkey PRIMARY KEY (bank_id);
+
+
+--
+-- Name: branch branch_pkey; Type: CONSTRAINT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.branch
+    ADD CONSTRAINT branch_pkey PRIMARY KEY (sort_code);
+
+
+--
+-- Name: customer customer_email_key; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.customer
+    ADD CONSTRAINT customer_email_key UNIQUE (email);
+
+
+--
+-- Name: customer customer_mobile_number_key; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.customer
+    ADD CONSTRAINT customer_mobile_number_key UNIQUE (mobile_number);
+
+
+--
+-- Name: customer customer_pkey; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.customer
+    ADD CONSTRAINT customer_pkey PRIMARY KEY (customer_id);
+
+
+--
+-- Name: customer customer_username_key; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.customer
+    ADD CONSTRAINT customer_username_key UNIQUE (username);
+
+
+--
+-- Name: employee employee_email_key; Type: CONSTRAINT; Schema: employee
+--
+
+ALTER TABLE ONLY employee.employee
+    ADD CONSTRAINT employee_email_key UNIQUE (email);
+
+
+--
+-- Name: employee employee_mobile_number_key; Type: CONSTRAINT; Schema: employee
+--
+
+ALTER TABLE ONLY employee.employee
+    ADD CONSTRAINT employee_mobile_number_key UNIQUE (mobile_number);
+
+
+--
+-- Name: employee employee_pkey; Type: CONSTRAINT; Schema: employee
+--
+
+ALTER TABLE ONLY employee.employee
+    ADD CONSTRAINT employee_pkey PRIMARY KEY (employee_id);
+
+
+--
+-- Name: employee employee_username_key; Type: CONSTRAINT; Schema: employee
+--
+
+ALTER TABLE ONLY employee.employee
+    ADD CONSTRAINT employee_username_key UNIQUE (username);
+
+
+--
+-- Name: loan loan_pkey; Type: CONSTRAINT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.loan
+    ADD CONSTRAINT loan_pkey PRIMARY KEY (loan_id);
+
+
+
+--
+-- Name: payment payment_pkey; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.payment
+    ADD CONSTRAINT payment_pkey PRIMARY KEY (payment_id);
+
+
+--
+-- Name: transaction transaction_loan_id_key; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transaction
+    ADD CONSTRAINT transaction_loan_id_key UNIQUE (loan_id);
+
+
+--
+-- Name: transaction transaction_payment_id_key; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transaction
+    ADD CONSTRAINT transaction_payment_id_key UNIQUE (payment_id);
+
+
+--
+-- Name: transaction transaction_pkey; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transaction
+    ADD CONSTRAINT transaction_pkey PRIMARY KEY (transaction_id);
+
+
+--
+-- Name: transaction transaction_transfer_id_key; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transaction
+    ADD CONSTRAINT transaction_transfer_id_key UNIQUE (transfer_id);
+
+
+--
+-- Name: transfer transfer_pkey; Type: CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transfer
+    ADD CONSTRAINT transfer_pkey PRIMARY KEY (transfer_id);
+
+
+--
+-- Name: account account_customer_id_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.account
+    ADD CONSTRAINT account_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES customer.customer(customer_id);
+
+
+--
+-- Name: account account_sort_code_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.account
+    ADD CONSTRAINT account_sort_code_fkey FOREIGN KEY (sort_code) REFERENCES bank.branch(sort_code);
+
+
+--
+-- Name: account account_type_id_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.account
+    ADD CONSTRAINT account_type_id_fkey FOREIGN KEY (type_id) REFERENCES bank.account_types(type_id);
+
+
+--
+-- Name: approval approval_employee_id_fkey; Type: FK CONSTRAINT; Schema: manager
+--
+
+ALTER TABLE ONLY manager.approval
+    ADD CONSTRAINT approval_employee_id_fkey FOREIGN KEY (employee_id) REFERENCES employee.employee(employee_id);
+
+
+--
+-- Name: branch branch_bank_id_fkey; Type: FK CONSTRAINT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.branch
+    ADD CONSTRAINT branch_bank_id_fkey FOREIGN KEY (bank_id) REFERENCES bank.bank(bank_id);
+
+
+--
+-- Name: employee employee_sort_code_fkey; Type: FK CONSTRAINT; Schema: employee
+--
+
+ALTER TABLE ONLY employee.employee
+    ADD CONSTRAINT employee_sort_code_fkey FOREIGN KEY (sort_code) REFERENCES bank.branch(sort_code);
+
+
+--
+-- Name: loan loan_account_number_fkey; Type: FK CONSTRAINT; Schema: bank
+--
+
+ALTER TABLE ONLY bank.loan
+    ADD CONSTRAINT loan_account_number_fkey FOREIGN KEY (account_number) REFERENCES customer.account(account_number);
+
+
+--
+-- Name: payment payment_account_number_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.payment
+    ADD CONSTRAINT payment_account_number_fkey FOREIGN KEY (account_number) REFERENCES customer.account(account_number);
+
+
+--
+-- Name: transaction transaction_approval_id_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transaction
+    ADD CONSTRAINT transaction_approval_id_fkey FOREIGN KEY (approval_id) REFERENCES manager.approval(approval_id);
+
+
+--
+-- Name: transaction transaction_loan_id_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transaction
+    ADD CONSTRAINT transaction_loan_id_fkey FOREIGN KEY (loan_id) REFERENCES bank.loan(loan_id);
+
+
+--
+-- Name: transaction transaction_payment_id_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transaction
+    ADD CONSTRAINT transaction_payment_id_fkey FOREIGN KEY (payment_id) REFERENCES customer.payment(payment_id);
+
+
+--
+-- Name: transaction transaction_transfer_id_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transaction
+    ADD CONSTRAINT transaction_transfer_id_fkey FOREIGN KEY (transfer_id) REFERENCES customer.transfer(transfer_id);
+
+
+--
+-- Name: transfer transfer_account_number_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transfer
+    ADD CONSTRAINT transfer_account_number_fkey FOREIGN KEY (account_number) REFERENCES customer.account(account_number);
+
+
+--
+-- Name: transfer transfer_receiver_accnum_fkey; Type: FK CONSTRAINT; Schema: customer
+--
+
+ALTER TABLE ONLY customer.transfer
+    ADD CONSTRAINT transfer_receiver_accnum_fkey FOREIGN KEY (receiver_accnum) REFERENCES customer.account(account_number);
+
+
+--
+-- PostgreSQL database dump complete
+--
+
+
+-- all functions and procedures
+
+-- employee get balance function
+CREATE OR REPLACE FUNCTION customer.check_all_account_balances(id INTEGER)
+RETURNS TABLE (account_number character(8), account_name character varying(255), account_type varchar(100), account_balance INTEGER) AS $$
+BEGIN
+  -- check if the customer exists
+  RETURN QUERY 
+  SELECT a.account_number, a.account_name, at.type_name, a.balance 
+  FROM customer.account a 
+  JOIN bank.account_types at ON a.type_id = at.type_id
+  WHERE customer_id = id;
+
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    RAISE EXCEPTION 'Customer % not found', id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- --make a transfer
+-- CREATE OR REPLACE FUNCTION bank.make_transfer(param_account_number CHARACTER(8), param_receiver_accnum CHARACTER(8), param_amount INTEGER)
+-- RETURNS VOID AS $$
+-- DECLARE
+--   current_balance INTEGER;
+-- BEGIN
+--   -- check if the account has enough balance to make the transfer
+--   SELECT balance INTO current_balance FROM customer.account WHERE account_number = param_account_number;
+--   IF current_balance < param_amount THEN
+--     RAISE EXCEPTION 'Insufficient balance in account %', account_number;
+--   ELSE
+--     -- make the transfer
+
+--     INSERT INTO customer.transaction (transfer_id, account_number, receiver_accnum, amount, date)
+--     VALUES (DEFAULT, sender_account_number, receiver_account_number, amount, NOW());
+
+--     UPDATE customer.account SET balance = balance - param_amount WHERE account_number = param_account_number;
+--     UPDATE customer.account SET balance = balance + param_amount WHERE account_number = param_receiver_accnum;
+--   END IF;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+
+-- make a transfer
+CREATE OR REPLACE FUNCTION bank.transfer_money(
+    sender_accnum character(8),
+    receiver_accnum character(8),
+    amount integer
+)
+RETURNS void AS $$
+BEGIN
+    IF amount <= 0 THEN
+        RAISE EXCEPTION 'Cannot transfer negative amount of money';
+    END IF;
+
+    -- check if sender account exists
+    IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = sender_accnum) THEN
+        RAISE EXCEPTION 'Sender account does not exist';
+    END IF;
+
+    -- check if receiver account exists
+    IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = receiver_accnum) THEN
+        RAISE EXCEPTION 'Receiver account does not exist';
+    END IF;
+
+    -- check if sender has sufficient funds
+    IF (SELECT balance FROM customer.account WHERE account_number = sender_accnum) < amount THEN
+        RAISE EXCEPTION 'Insufficient funds in sender account';
+    END IF;
+
+    -- update sender account balance
+    UPDATE customer.account SET balance = balance - amount WHERE account_number = sender_accnum;
+
+    -- update receiver account balance
+    UPDATE customer.account SET balance = balance + amount WHERE account_number = receiver_accnum;
+
+    -- insert transfer into customer.transfer table
+    INSERT INTO customer.transfer (transfer_id, account_number, receiver_accnum, amount, date)
+    VALUES (nextval('customer.transfer_transfer_id_seq'), sender_accnum, receiver_accnum, amount, CURRENT_DATE);
+
+    -- insert transfer into customer.transaction_pending table
+    INSERT INTO customer.transaction_pending (pending_transaction_id, pending_sensitive_flag, pending_transfer_id)
+    VALUES (nextval('customer.transaction_transaction_id_seq'), false, currval('customer.transfer_transfer_id_seq'));
+
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- check a transfer
+CREATE OR REPLACE FUNCTION customer.check_transactions(IN c_id INTEGER)
+RETURNS TABLE(transaction_id INTEGER, sensitive_flag BOOLEAN, approval_id INTEGER, transfer_id INTEGER, payment_id INTEGER, loan_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), amount INTEGER, date DATE)
+AS $$
+#variable_conflict use_column
+BEGIN
+    RETURN QUERY 
+    SELECT t.transaction_id, t.sensitive_flag, t.approval_id, t.transfer_id, t.payment_id, t.loan_id, tr.account_number, tr.receiver_accnum, tr.amount, tr.date
+    FROM customer.transaction t
+    JOIN customer.transfer tr ON t.transfer_id = tr.transfer_id
+    WHERE tr.account_number IN (SELECT account_number FROM customer.account WHERE customer_id = c_id);
+END;
+$$ LANGUAGE plpgsql;
+
+
+
+-- -- add a transaction from loan, payment or transfer
+-- CREATE OR REPLACE FUNCTION customer.add_transaction(transaction_id INTEGER, transfer_id INTEGER, payment_id INTEGER, loan_id INTEGER)
+-- RETURNS VOID AS $$
+-- BEGIN
+--   -- check if the transaction is a loan
+--   IF loan_id IS NOT NULL THEN
+--     -- insert a new sensitive transaction into the customer.transaction table
+--     INSERT INTO customer.transaction (transaction_id, sensitive_flag, transfer_id, payment_id, loan_id)
+--     VALUES (transaction_id, true, transfer_id, payment_id, loan_id);
+--   ELSE
+--     -- insert a new non-sensitive transaction into the customer.transaction table
+--     INSERT INTO customer.transaction (transaction_id, sensitive_flag, transfer_id, payment_id, loan_id)
+--     VALUES (transaction_id, false, transfer_id, payment_id, loan_id);
+--   END IF;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+
+
+
+
+-- -- manager approval of transaction procedure
+-- CREATE OR REPLACE FUNCTION manager.approve_sensitive_transaction(id INTEGER)
+-- RETURNS VOID AS $$
+-- BEGIN
+--   -- check if the sensitive_flag is set to true
+--   IF NOT EXISTS (SELECT 1 FROM customer.transaction WHERE sensitive_flag = true AND transaction_id = id) THEN
+--     RAISE EXCEPTION 'Transaction is not sensitive';
+--   END IF;
+--   -- insert a new approval into the manager.approval table
+--   INSERT INTO manager.approval (employee_id, date, approval_flag)
+--   VALUES ((SELECT employee_id FROM employee.employee WHERE role = 'manager'), NOW(), true);
+--   -- update the transaction to set the approval_id
+--   UPDATE customer.transaction
+--   SET approval_id = (SELECT currval('manager.approval_approval_id_seq'))
+--   WHERE transaction_id = id;
+-- END;
+-- $$ LANGUAGE plpgsql;
+
+
+
+--creation of roles and users
+
+-- bank role and users, permission and privileges
+CREATE ROLE role_bank;
+CREATE ROLE user_bank1 WITH LOGIN PASSWORD 'test';
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA bank TO role_bank;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA manager TO role_bank;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA employee TO role_bank;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA customer TO role_bank;
+
+GRANT USAGE, SELECT ON SEQUENCE customer.transfer_transfer_id_seq TO role_bank;
+GRANT USAGE, SELECT ON SEQUENCE customer.transaction_transaction_id_seq TO role_bank;
+
+
+GRANT USAGE ON SCHEMA bank TO role_bank;
+GRANT USAGE ON SCHEMA manager TO role_bank;
+GRANT USAGE ON SCHEMA employee TO role_bank;
+GRANT USAGE ON SCHEMA customer TO role_bank;
+
+
+GRANT role_bank TO user_bank1;
+
+
+-- employee role and users, permission and privileges
+CREATE ROLE role_employee;
+CREATE ROLE user_employee1 WITH LOGIN PASSWORD 'test';
+
+GRANT USAGE ON SCHEMA employee TO role_employee;
+GRANT SELECT ON ALL TABLES IN SCHEMA employee TO role_employee;
+
+GRANT USAGE ON SCHEMA customer TO role_employee;
+GRANT SELECT ON TABLE customer.account TO role_employee;
+
+GRANT USAGE ON SCHEMA bank TO role_employee;
+GRANT SELECT ON TABLE bank.account_types TO role_employee;
+
+GRANT role_employee TO user_employee1;
+
+
+-- manager role and users, permission and privileges
+CREATE ROLE role_manager;
+CREATE ROLE user_manager1 WITH LOGIN PASSWORD 'test';
+GRANT USAGE ON SCHEMA manager TO role_manager;
+GRANT SELECT ON ALL TABLES IN SCHEMA manager TO role_manager;
+
+GRANT SELECT, UPDATE ON TABLE customer.transaction TO role_manager;
+
+GRANT role_manager TO user_manager1;
+GRANT role_employee TO user_manager1;
+
+-- customer role and users, permission and privileges
+CREATE ROLE role_customer;
+CREATE ROLE user_customer1 WITH LOGIN PASSWORD 'test';
+
+GRANT USAGE ON SCHEMA customer TO role_customer;
+GRANT SELECT ON ALL TABLES IN SCHEMA customer TO role_customer;
+
+GRANT USAGE ON SCHEMA bank TO role_customer;
+GRANT SELECT ON TABLE bank.account_types TO role_customer;
+
+GRANT role_customer TO user_customer1;
