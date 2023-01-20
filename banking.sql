@@ -107,8 +107,8 @@ CREATE TABLE customer.payment (
 
 CREATE TABLE customer.transfer (
     transfer_id SERIAL PRIMARY KEY,
-    transfer_senderaccnum character(8) NOT NULL,
-    transfer_receiveraccnum character(8) NOT NULL,
+    transfer_senderaccnum character(8) NOT NULL REFERENCES customer.account(account_number),
+    transfer_receiveraccnum character(8) NOT NULL REFERENCES customer.account(account_number),
     transfer_amount integer NOT NULL,
     transfer_date date NOT NULL
 );
@@ -133,7 +133,14 @@ CREATE TABLE customer.transaction (
 
 -- all functions and procedures
 
--- employee get balance function
+-- customer can enter their details into customer table 
+-- and an account is created for them 
+
+
+-- existing customer can open another account
+
+
+-- customer can see their balance function
 CREATE OR REPLACE FUNCTION customer.check_all_account_balances(id INTEGER)
 RETURNS TABLE (account_number character(8), account_name character varying(255), account_type varchar(100), account_balance INTEGER) AS $$
 BEGIN
@@ -150,6 +157,10 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
+
+-- apply for a loan, wait for approval and then loan gets assigned to account
+
+--customer can pay online
 
 -- make a transfer
 CREATE OR REPLACE FUNCTION bank.transfer_money(
@@ -211,8 +222,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- -- manager approval of transaction procedure
-
+-- -- manager approval of transaction procedure (loans, credit limits)
 
 
 
