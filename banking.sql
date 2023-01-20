@@ -40,9 +40,9 @@ CREATE TABLE bank.account_type (
 CREATE TABLE customer.customer (
     customer_id SERIAL PRIMARY KEY,
     customer_username character varying(30) NOT NULL UNIQUE,
-    customer_password character varying(255) NOT NULL,
-    customer_fname character varying(255) NOT NULL,
-    customer_lname character varying(255) NOT NULL,
+    customer_password character varying(30) NOT NULL,
+    customer_fname character varying(50) NOT NULL,
+    customer_lname character varying(50) NOT NULL,
     customer_mobile character(11) NOT NULL UNIQUE,
     customer_email character varying(50) NOT NULL UNIQUE,
     customer_address character varying(255) NOT NULL,
@@ -135,6 +135,18 @@ CREATE TABLE customer.transaction (
 
 -- customer can enter their details into customer table 
 -- and an account is created for them 
+
+-- testing making customer entry 
+-- psql -U user_customer1 -h localhost -d banking -c "select * from customer.create_entry('jmika','pass123','John','Mikaelis','07495083045','jonhhny@gmail.com','18 Abbey Close, Coventry','CV56HN')"
+
+
+CREATE OR REPLACE FUNCTION customer.create_customer(param_uname varchar(30), param_pass varchar(30), param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
+RETURNS void AS $$
+BEGIN
+    INSERT INTO customer.customer
+    VALUES(nextval('customer.customer_customer_id_seq'),param_uname, param_pass, param_fname, param_lname, param_mobile, param_email, param_address, param_postcode);
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- existing customer can open another account
@@ -283,7 +295,10 @@ CREATE ROLE role_customer;
 CREATE ROLE user_customer1 WITH LOGIN PASSWORD 'test';
 
 GRANT USAGE ON SCHEMA customer TO role_customer;
-GRANT SELECT ON ALL TABLES IN SCHEMA customer TO role_customer;
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA customer TO role_customer;
+
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA customer TO role_customer;
+GRANT SELECT ON ALL SEQUENCES IN SCHEMA customer TO role_customer;
 
 GRANT USAGE ON SCHEMA bank TO role_customer;
 GRANT SELECT ON TABLE bank.account_type TO role_customer;
