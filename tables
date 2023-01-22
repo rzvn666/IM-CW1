@@ -1,3 +1,4 @@
+
 CREATE TABLE bank.bank (
     bank_id SERIAL PRIMARY KEY,
     bank_name character varying(50) NOT NULL,
@@ -21,12 +22,25 @@ CREATE TABLE bank.account_type (
     type_name character varying(100) NOT NULL
 );
 
+CREATE TABLE bank.loan_type (
+    loantype_id SERIAL PRIMARY KEY,
+    loantype_amount integer NOT NULL,
+    loantype_interest real NOT NULL,
+    loantype_term integer NOT NULL
+);
+
+CREATE TABLE bank.loan(
+    loan_id SERIAL PRIMARY KEY,
+    loan_type INT NOT NULL REFERENCES bank.loan_type(loantype_id),
+    loan_status varchar(50) NOT NULL
+);
+
 CREATE TABLE customer.customer (
     customer_id SERIAL PRIMARY KEY,
     customer_username character varying(30) NOT NULL UNIQUE,
-    customer_password character varying(255) NOT NULL,
-    customer_fname character varying(255) NOT NULL,
-    customer_lname character varying(255) NOT NULL,
+    customer_password character varying(30) NOT NULL,
+    customer_fname character varying(50) NOT NULL,
+    customer_lname character varying(50) NOT NULL,
     customer_mobile character(11) NOT NULL UNIQUE,
     customer_email character varying(50) NOT NULL UNIQUE,
     customer_address character varying(255) NOT NULL,
@@ -39,6 +53,7 @@ CREATE TABLE customer.account (
     account_sortcode character(6) NOT NULL REFERENCES bank.branch(branch_sortcode),
     account_customerid integer NOT NULL REFERENCES customer.customer(customer_id),
     account_type integer NOT NULL REFERENCES bank.account_type(type_id),
+    account_loan integer REFERENCES bank.loan(loan_id),
     account_balance integer NOT NULL,
     account_name character varying(255) NOT NULL,
     account_iban character varying(34) NOT NULL,
@@ -61,23 +76,6 @@ CREATE TABLE employee.employee (
 );
 
 
-CREATE TABLE manager.approval (
-    approval_id SERIAL PRIMARY KEY,
-    approval_employee integer NOT NULL REFERENCES employee.employee(employee_id),
-    approval_date date NOT NULL,
-    approval_flag boolean NOT NULL
-);
-
-
-CREATE TABLE bank.loan (
-    loan_id SERIAL PRIMARY KEY,
-    loan_accountnum character(8) NOT NULL REFERENCES customer.account(account_number),
-    loan_amount integer NOT NULL,
-    loan_interest real NOT NULL,
-    loan_apr real NOT NULL,
-    loan_term integer NOT NULL
-);
-
 
 CREATE TABLE customer.payment (
     payment_id SERIAL PRIMARY KEY,
@@ -86,14 +84,16 @@ CREATE TABLE customer.payment (
     payment_receiversortcode character(6) NOT NULL,
     payment_receivername character varying(255) NOT NULL,
     payment_amount integer NOT NULL,
+    payment_status varchar(50) NOT NULL,
     payment_date date NOT NULL
 );
 
 CREATE TABLE customer.transfer (
     transfer_id SERIAL PRIMARY KEY,
-    transfer_senderaccnum character(8) NOT NULL,
-    transfer_receiveraccnum character(8) NOT NULL,
+    transfer_senderaccnum character(8) NOT NULL REFERENCES customer.account(account_number),
+    transfer_receiveraccnum character(8) NOT NULL REFERENCES customer.account(account_number),
     transfer_amount integer NOT NULL,
+    transfer_status varchar(50) NOT NULL,
     transfer_date date NOT NULL
 );
 
@@ -105,9 +105,14 @@ CREATE TABLE customer.transaction_pending (
     pending_paymentid INTEGER REFERENCES customer.payment(payment_id),
     pending_loanid INTEGER REFERENCES bank.loan(loan_id),
     pending_sensitiveflag BOOLEAN NOT NULL,
-    pending_approvalid INTEGER REFERENCES manager.approval(approval_id)
+    pending_approvalflag BOOLEAN NOT NULL
 );
 
+CREATE TABLE manager.approval (
+    approval_id SERIAL PRIMARY KEY,
+    approval_date date NOT NULL,
+    approval_transaction integer NOT NULL REFERENCES customer.transaction_pending(pending_transactionid)
+);
 
 CREATE TABLE customer.transaction (
     transaction_id SERIAL PRIMARY KEY,

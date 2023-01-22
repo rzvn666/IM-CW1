@@ -37,6 +37,19 @@ CREATE TABLE bank.account_type (
     type_name character varying(100) NOT NULL
 );
 
+CREATE TABLE bank.loan_type (
+    loantype_id SERIAL PRIMARY KEY,
+    loantype_amount integer NOT NULL,
+    loantype_interest real NOT NULL,
+    loantype_term integer NOT NULL
+);
+
+CREATE TABLE bank.loan(
+    loan_id SERIAL PRIMARY KEY,
+    loan_type INT NOT NULL REFERENCES bank.loan_type(loantype_id),
+    loan_status varchar(50) NOT NULL
+);
+
 CREATE TABLE customer.customer (
     customer_id SERIAL PRIMARY KEY,
     customer_username character varying(30) NOT NULL UNIQUE,
@@ -55,6 +68,7 @@ CREATE TABLE customer.account (
     account_sortcode character(6) NOT NULL REFERENCES bank.branch(branch_sortcode),
     account_customerid integer NOT NULL REFERENCES customer.customer(customer_id),
     account_type integer NOT NULL REFERENCES bank.account_type(type_id),
+    account_loan integer REFERENCES bank.loan(loan_id),
     account_balance integer NOT NULL,
     account_name character varying(255) NOT NULL,
     account_iban character varying(34) NOT NULL,
@@ -77,23 +91,6 @@ CREATE TABLE employee.employee (
 );
 
 
-CREATE TABLE manager.approval (
-    approval_id SERIAL PRIMARY KEY,
-    approval_employee integer NOT NULL REFERENCES employee.employee(employee_id),
-    approval_date date NOT NULL,
-    approval_flag boolean NOT NULL
-);
-
-
-CREATE TABLE bank.loan (
-    loan_id SERIAL PRIMARY KEY,
-    loan_accountnum character(8) NOT NULL REFERENCES customer.account(account_number),
-    loan_amount integer NOT NULL,
-    loan_interest real NOT NULL,
-    loan_apr real NOT NULL,
-    loan_term integer NOT NULL
-);
-
 
 CREATE TABLE customer.payment (
     payment_id SERIAL PRIMARY KEY,
@@ -102,6 +99,7 @@ CREATE TABLE customer.payment (
     payment_receiversortcode character(6) NOT NULL,
     payment_receivername character varying(255) NOT NULL,
     payment_amount integer NOT NULL,
+    payment_status varchar(50) NOT NULL,
     payment_date date NOT NULL
 );
 
@@ -110,6 +108,7 @@ CREATE TABLE customer.transfer (
     transfer_senderaccnum character(8) NOT NULL REFERENCES customer.account(account_number),
     transfer_receiveraccnum character(8) NOT NULL REFERENCES customer.account(account_number),
     transfer_amount integer NOT NULL,
+    transfer_status varchar(50) NOT NULL,
     transfer_date date NOT NULL
 );
 
@@ -121,9 +120,14 @@ CREATE TABLE customer.transaction_pending (
     pending_paymentid INTEGER REFERENCES customer.payment(payment_id),
     pending_loanid INTEGER REFERENCES bank.loan(loan_id),
     pending_sensitiveflag BOOLEAN NOT NULL,
-    pending_approvalid INTEGER REFERENCES manager.approval(approval_id)
+    pending_approvalflag BOOLEAN NOT NULL
 );
 
+CREATE TABLE manager.approval (
+    approval_id SERIAL PRIMARY KEY,
+    approval_date date NOT NULL,
+    approval_transaction integer NOT NULL REFERENCES customer.transaction_pending(pending_transactionid)
+);
 
 CREATE TABLE customer.transaction (
     transaction_id SERIAL PRIMARY KEY,
@@ -154,7 +158,7 @@ $$ LANGUAGE plpgsql;
 
 -- customer can see their balance function
 CREATE OR REPLACE FUNCTION customer.check_all_account_balances(id INTEGER)
-RETURNS TABLE (account_number character(8), account_name character varying(255), account_type varchar(100), account_balance INTEGER) AS $$
+RETURNS TABLE (account_number character(8), account_name varchar(255), account_type varchar(100), account_balance INTEGER) AS $$
 BEGIN
   -- check if the customer exists
   RETURN QUERY 
@@ -172,15 +176,66 @@ $$ LANGUAGE plpgsql;
 
 -- apply for a loan, wait for approval and then loan gets assigned to account
 
---customer can pay online
+
+-- MAKE SURE THAT THE PAYMENTS OR TRANSFERS PENDING ARE COMPLETED AND THE MONEY IS SENT ONLY
+-- AFTER THEY HAVE BEEN COMPLETED
+-- MAKE A PROCEDURE CALLED transfer_complete
+-- IF TRANSFER IS COMPLETE, MINUS MONEY FROM HERE AND ADD HERE
+-- IF PAYMENT IS COMPLETE, MINUS MONEY AND SEND DETAILS
+-- IF LOAN IS COMPLETE, ADD MONEY TO BANK ACCOUNT WITH ACCOUNT NUMBER
+-- MAYBE FIGURE OUT HOW TO PAY BACK MONTHLY AUTOMATICALLY
+
+
+-- make a payment
+CREATE OR REPLACE FUNCTION bank.make_payment(
+    sender_accnum character(8),
+    receiver_accnum character(8),
+    receiver_sortcode character(6),
+    receiver_name varchar(255),
+    amount integer
+)
+RETURNS TABLE (pay_id INTEGER, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), pay_receivername varchar(255), pay_amount INTEGER, pay_status varchar(50), pay_date DATE) AS $$
+BEGIN
+    IF amount <= 0 THEN
+        RAISE EXCEPTION 'Cannot pay negative amount of money';
+    END IF;
+
+    -- check if sender account exists
+    IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = sender_accnum) THEN
+        RAISE EXCEPTION 'Sender account does not exist';
+    END IF;
+
+    -- check if sender has sufficient funds
+    IF (SELECT account_balance FROM customer.account WHERE account_number = sender_accnum) < amount THEN
+        RAISE EXCEPTION 'Insufficient funds in sender account';
+    END IF;
+
+    -- update sender account balance
+    UPDATE customer.account SET account_balance = account_balance - amount WHERE account_number = sender_accnum;
+
+    -- insert payment into customer.payment table
+    INSERT INTO customer.payment (payment_id, payment_accountnum, payment_receiveraccnum, payment_receiversortcode, payment_receivername, payment_amount, payment_status, payment_date)
+    VALUES (nextval('customer.payment_payment_id_seq'), sender_accnum, receiver_accnum, receiver_sortcode, receiver_name, amount, 'PENDING', NOW());
+
+    -- insert payment into customer.transaction_pending table
+    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_paymentid)
+    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'PAYMENT', false, currval('customer.payment_payment_id_seq'));
+
+    RETURN QUERY
+    SELECT *
+    FROM customer.payment p
+    WHERE p.payment_id = currval('customer.payment_payment_id_seq');
+
+END;
+$$ LANGUAGE plpgsql;
 
 -- make a transfer
-CREATE OR REPLACE FUNCTION bank.transfer_money(
+CREATE OR REPLACE FUNCTION bank.make_transfer(
     sender_accnum character(8),
     receiver_accnum character(8),
     amount integer
 )
-RETURNS void AS $$
+RETURNS TABLE (tran_id int, tran_senderacc char(8), tran_receiveracc char(8), tran_amount int, tran_status varchar(50), tran_date date) AS $$
 BEGIN
     IF amount <= 0 THEN
         RAISE EXCEPTION 'Cannot transfer negative amount of money';
@@ -208,33 +263,79 @@ BEGIN
     UPDATE customer.account SET account_balance = account_balance + amount WHERE account_number = receiver_accnum;
 
     -- insert transfer into customer.transfer table
-    INSERT INTO customer.transfer (transfer_id, transfer_senderaccnum, transfer_receiveraccnum, transfer_amount, transfer_date)
-    VALUES (nextval('customer.transfer_transfer_id_seq'), sender_accnum, receiver_accnum, amount, CURRENT_DATE);
+    INSERT INTO customer.transfer (transfer_id, transfer_senderaccnum, transfer_receiveraccnum, transfer_amount, transfer_status, transfer_date)
+    VALUES (nextval('customer.transfer_transfer_id_seq'), sender_accnum, receiver_accnum, amount, 'PENDING', NOW());
 
     -- insert transfer into customer.transaction_pending table
     INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_transferid)
-    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'transferring funds', false, currval('customer.transfer_transfer_id_seq'));
+    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'TRANSFER', false, currval('customer.transfer_transfer_id_seq'));
 
+    RETURN QUERY
+    SELECT *
+    FROM customer.transfer t
+    WHERE t.transfer_id = currval('customer.transfer_transfer_id_seq');
 END;
 $$ LANGUAGE plpgsql;
 
 
 -- check a transfer
 CREATE OR REPLACE FUNCTION customer.check_transfer_transactions(IN c_id INTEGER)
-RETURNS TABLE(transaction_id INTEGER, transaction_ref character varying(255), transfer_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), amount INTEGER, date DATE)
+RETURNS TABLE(transaction_id INTEGER, transaction_ref character varying(255), transfer_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), amount INTEGER, status varchar(50), date DATE)
 AS $$
 #variable_conflict use_column
 BEGIN
     RETURN QUERY 
-    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_transferid, tr.transfer_senderaccnum, tr.transfer_receiveraccnum, tr.transfer_amount, tr.transfer_date
+    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_transferid, tr.transfer_senderaccnum, tr.transfer_receiveraccnum, tr.transfer_amount, tr.transfer_status, tr.transfer_date
     FROM customer.transaction_pending t
     JOIN customer.transfer tr ON t.pending_transferid = tr.transfer_id
     WHERE tr.transfer_senderaccnum IN (SELECT account_number FROM customer.account WHERE account_customerid = c_id);
 END;
 $$ LANGUAGE plpgsql;
 
+-- check a payment
+CREATE OR REPLACE FUNCTION customer.check_payment_transactions(IN c_id INTEGER)
+RETURNS TABLE(transaction_id INTEGER, transaction_ref character varying(255), payment_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), receiver_sortcode CHARACTER(6), payment_receivername character varying(255), amount INTEGER, status varchar(50), date DATE)
+AS $$
+#variable_conflict use_column
+BEGIN
+    RETURN QUERY 
+    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_paymentid, p.payment_accountnum, p.payment_receiveraccnum, p.payment_receiversortcode, p.payment_receivername, p.payment_amount, p.payment_status, p.payment_date
+    FROM customer.transaction_pending t
+    JOIN customer.payment p ON t.pending_paymentid = p.payment_id
+    WHERE p.payment_accountnum IN (SELECT account_number FROM customer.account WHERE account_customerid = c_id);
+END;
+$$ LANGUAGE plpgsql;
 
--- -- manager approval of transaction procedure (loans, credit limits)
+
+-- manager approval of transaction procedure (loans, credit limits)
+CREATE OR REPLACE FUNCTION manager.approve_pending_transactions(tran_id int)
+RETURNS TABLE(appr_id int, appr_date date, appr_tran int) AS $$
+BEGIN
+    -- Update pending transactions with sensitive flag set to true if sensitive flag is set to true
+    IF EXISTS (SELECT * FROM customer.transaction_pending WHERE pending_sensitiveflag = true AND pending_approvalflag = false AND pending_transactionid = tran_id) THEN
+        UPDATE customer.transaction_pending
+        SET pending_approvalflag = true
+        WHERE pending_sensitiveflag = true AND pending_transactionid = tran_id;
+        
+        
+        -- Update approvals record
+        INSERT INTO manager.approval(approval_id,approval_date,approval_transaction)
+        VALUES (nextval('manager.approval_approval_id_seq'),NOW(),tran_id);
+
+    ELSIF EXISTS (SELECT * FROM customer.transaction_pending WHERE pending_sensitiveflag = false OR pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+        RAISE EXCEPTION 'Transaction is not sensitive or does not need approval.';
+
+    ELSE
+        RAISE EXCEPTION 'No transaction found';
+
+    END IF;
+
+    RETURN QUERY
+    SELECT *
+    FROM manager.approval a
+    WHERE a.approval_id = currval('manager.approval_approval_id_seq');
+END;
+$$ LANGUAGE plpgsql;
 
 
 
