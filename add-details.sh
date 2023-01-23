@@ -64,7 +64,7 @@ psql -c "INSERT INTO customer.transaction_pending (pending_transactionid, pendin
 (nextval('customer.transaction_pending_pending_transactionid_seq'),'PAYMENT',NULL,3,NULL,false,true),
 (nextval('customer.transaction_pending_pending_transactionid_seq'),'PAYMENT',NULL,4,NULL,false,true),
 (nextval('customer.transaction_pending_pending_transactionid_seq'),'TRANSFER',1,NULL,NULL,false,true),
-(nextval('customer.transaction_pending_pending_transactionid_seq'),'TRANSFER',2,NULL,NULL,false,false),
+(nextval('customer.transaction_pending_pending_transactionid_seq'),'TRANSFER',2,NULL,NULL,true,false),
 (nextval('customer.transaction_pending_pending_transactionid_seq'),'LOAN',NULL,NULL,1,true,false);
 "
 

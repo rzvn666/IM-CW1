@@ -179,11 +179,13 @@ $$ LANGUAGE plpgsql;
 
 -- MAKE SURE THAT THE PAYMENTS OR TRANSFERS PENDING ARE COMPLETED AND THE MONEY IS SENT ONLY
 -- AFTER THEY HAVE BEEN COMPLETED
--- MAKE A PROCEDURE CALLED transfer_complete
+-- MAKE A PROCEDURE CALLED transaction_complete
 -- IF TRANSFER IS COMPLETE, MINUS MONEY FROM HERE AND ADD HERE
 -- IF PAYMENT IS COMPLETE, MINUS MONEY AND SEND DETAILS
 -- IF LOAN IS COMPLETE, ADD MONEY TO BANK ACCOUNT WITH ACCOUNT NUMBER
 -- MAYBE FIGURE OUT HOW TO PAY BACK MONTHLY AUTOMATICALLY
+
+
 
 
 -- make a payment
@@ -215,11 +217,11 @@ BEGIN
 
     -- insert payment into customer.payment table
     INSERT INTO customer.payment (payment_id, payment_accountnum, payment_receiveraccnum, payment_receiversortcode, payment_receivername, payment_amount, payment_status, payment_date)
-    VALUES (nextval('customer.payment_payment_id_seq'), sender_accnum, receiver_accnum, receiver_sortcode, receiver_name, amount, 'PENDING', NOW());
+    VALUES (nextval('customer.payment_payment_id_seq'), sender_accnum, receiver_accnum, receiver_sortcode, receiver_name, amount, 'COMPLETE', NOW());
 
     -- insert payment into customer.transaction_pending table
-    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_paymentid)
-    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'PAYMENT', false, currval('customer.payment_payment_id_seq'));
+    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_paymentid)
+    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'PAYMENT', false, true, currval('customer.payment_payment_id_seq'));
 
     RETURN QUERY
     SELECT *
@@ -228,6 +230,10 @@ BEGIN
 
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- A TRANSFER CAN ONLY BE MADE BETWEEN A CUSTOMERS OWN ACCOUNTS
+-- CURRENTLY IT CAN TRANSFER BETWEEN ANY EXISTING ACCOUNTS
 
 -- make a transfer
 CREATE OR REPLACE FUNCTION bank.make_transfer(
@@ -264,11 +270,11 @@ BEGIN
 
     -- insert transfer into customer.transfer table
     INSERT INTO customer.transfer (transfer_id, transfer_senderaccnum, transfer_receiveraccnum, transfer_amount, transfer_status, transfer_date)
-    VALUES (nextval('customer.transfer_transfer_id_seq'), sender_accnum, receiver_accnum, amount, 'PENDING', NOW());
+    VALUES (nextval('customer.transfer_transfer_id_seq'), sender_accnum, receiver_accnum, amount, 'COMPLETE', NOW());
 
     -- insert transfer into customer.transaction_pending table
-    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_transferid)
-    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'TRANSFER', false, currval('customer.transfer_transfer_id_seq'));
+    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_transferid)
+    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'TRANSFER', false, true, currval('customer.transfer_transfer_id_seq'));
 
     RETURN QUERY
     SELECT *
@@ -316,13 +322,35 @@ BEGIN
         UPDATE customer.transaction_pending
         SET pending_approvalflag = true
         WHERE pending_sensitiveflag = true AND pending_transactionid = tran_id;
-        
-        
+
+        IF EXISTS (SELECT pending_transferid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+            UPDATE customer.transfer t
+            SET transfer_status = 'COMPLETE'
+            FROM customer.transaction_pending tr
+                --JOIN customer.transaction_pending tr ON t.transfer_id = tr.transfer_id 
+            WHERE t.transfer_id = tr.pending_transferid;
+        END IF;
+
+        IF EXISTS (SELECT pending_paymentid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+            UPDATE customer.payment p
+            SET payment_status = 'COMPLETE'
+            FROM customer.transaction_pending tr
+                --JOIN customer.transaction_pending tr ON t.transfer_id = tr.transfer_id 
+            WHERE p.payment_id = tr.pending_paymentid;
+        END IF;
+
+        IF EXISTS (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+            UPDATE bank.loan l
+            SET loan_status = 'COMPLETE'
+            FROM customer.transaction_pending tr
+            WHERE l.loan_id = tr.pending_paymentid;
+        END IF;
+         
         -- Update approvals record
         INSERT INTO manager.approval(approval_id,approval_date,approval_transaction)
         VALUES (nextval('manager.approval_approval_id_seq'),NOW(),tran_id);
 
-    ELSIF EXISTS (SELECT * FROM customer.transaction_pending WHERE pending_sensitiveflag = false OR pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+    ELSIF EXISTS (SELECT * FROM customer.transaction_pending WHERE (pending_sensitiveflag = false OR pending_approvalflag = true) AND pending_transactionid = tran_id) THEN
         RAISE EXCEPTION 'Transaction is not sensitive or does not need approval.';
 
     ELSE
