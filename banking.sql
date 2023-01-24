@@ -47,7 +47,8 @@ CREATE TABLE bank.loan_type (
 CREATE TABLE bank.loan(
     loan_id SERIAL PRIMARY KEY,
     loan_type INT NOT NULL REFERENCES bank.loan_type(loantype_id),
-    loan_status varchar(50) NOT NULL
+    loan_status varchar(50) NOT NULL,
+    loan_date DATE NOT NULL
 );
 
 CREATE TABLE customer.customer (
@@ -131,18 +132,15 @@ CREATE TABLE manager.approval (
 
 CREATE TABLE customer.transaction (
     transaction_id SERIAL PRIMARY KEY,
-    transaction_complete integer NOT NULL REFERENCES customer.transaction_pending(pending_transactionid)
+    transaction_complete integer NOT NULL REFERENCES customer.transaction_pending(pending_transactionid) UNIQUE
 );
 
 
 -- all functions and procedures
 
--- customer can enter their details into customer table 
--- and an account is created for them 
-
--- testing making customer entry 
--- psql -U user_customer1 -h localhost -d banking -c "select * from customer.create_entry('jmika','pass123','John','Mikaelis','07495083045','jonhhny@gmail.com','18 Abbey Close, Coventry','CV56HN')"
-
+-- IMPEMENT
+-- CREDIT LIMIT
+-- IF YOU WANT TO
 
 CREATE OR REPLACE FUNCTION customer.create_customer(param_uname varchar(30), param_pass varchar(30), param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
 RETURNS void AS $$
@@ -153,7 +151,22 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- existing customer can open another account
+-- existing customer can open another account and new customers can open account first account
+
+CREATE OR REPLACE FUNCTION customer.create_account(param_accountnum char(8), param_sortcode char(6), param_customerid int, param_accountype int, param_accountname varchar(255))
+RETURNS void AS $$
+BEGIN
+    
+    DECLARE 
+        param_iban VARCHAR(50);
+    BEGIN 
+        param_iban := 'GB73LOYD' || param_sortcode || param_accountnum;
+    EXECUTE 'INSERT INTO customer.account(account_number, account_sortcode, account_customerid, account_type, account_balance, account_name, account_iban, account_opendate) VALUES ($1, $2, $3, $4, 0, $5, '''|| format(param_iban) ||''', NOW())'
+    USING param_accountnum, param_sortcode, param_customerid, param_accountype, param_accountname, param_iban;
+    END;
+
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- customer can see their balance function
@@ -174,18 +187,38 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- apply for a loan, wait for approval and then loan gets assigned to account
+-- apply for loan
+CREATE OR REPLACE FUNCTION bank.apply_loan(
+    param_accountnum char(8),
+    param_loantype int
+)
+RETURNS TABLE (id_loan int, type_loan int, status_loan varchar(50), date_loan date, id_loantype int, amount_loantype int, interest_loantype real, term_loantype int ) AS $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM customer.account WHERE account_number = param_accountnum) THEN
+        -- insert transfer into bank.loan table
+        INSERT INTO bank.loan (loan_id, loan_type, loan_status, loan_date)
+        VALUES (nextval('bank.loan_loan_id_seq'), param_loantype, 'PENDING', NOW());
 
+        -- update customer.account table with loan
+        UPDATE customer.account
+        SET account_loan = currval('bank.loan_loan_id_seq')
+        WHERE account_number = param_accountnum;
 
--- MAKE SURE THAT THE PAYMENTS OR TRANSFERS PENDING ARE COMPLETED AND THE MONEY IS SENT ONLY
--- AFTER THEY HAVE BEEN COMPLETED
--- MAKE A PROCEDURE CALLED transaction_complete
--- IF TRANSFER IS COMPLETE, MINUS MONEY FROM HERE AND ADD HERE
--- IF PAYMENT IS COMPLETE, MINUS MONEY AND SEND DETAILS
--- IF LOAN IS COMPLETE, ADD MONEY TO BANK ACCOUNT WITH ACCOUNT NUMBER
--- MAYBE FIGURE OUT HOW TO PAY BACK MONTHLY AUTOMATICALLY
+        -- insert transfer into customer.transaction_pending table
+        INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_loanid)
+        VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'LOAN', true, false, currval('bank.loan_loan_id_seq'));
 
-
+    ELSE
+        RAISE EXCEPTION 'Account does not exist';        
+    END IF;
+    
+    RETURN QUERY
+    SELECT *
+    FROM bank.loan l
+    JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id
+    WHERE loan_id = currval('bank.loan_loan_id_seq');
+END;
+$$ LANGUAGE plpgsql;
 
 
 -- make a payment
@@ -223,6 +256,9 @@ BEGIN
     INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_paymentid)
     VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'PAYMENT', false, true, currval('customer.payment_payment_id_seq'));
 
+    INSERT INTO customer.transaction(transaction_id, transaction_complete)
+    VALUES(nextval('customer.transaction_transaction_id_seq'), currval('customer.transaction_pending_pending_transactionid_seq'));
+
     RETURN QUERY
     SELECT *
     FROM customer.payment p
@@ -232,9 +268,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- A TRANSFER CAN ONLY BE MADE BETWEEN A CUSTOMERS OWN ACCOUNTS
--- CURRENTLY IT CAN TRANSFER BETWEEN ANY EXISTING ACCOUNTS
-
 -- make a transfer
 CREATE OR REPLACE FUNCTION bank.make_transfer(
     sender_accnum character(8),
@@ -243,39 +276,47 @@ CREATE OR REPLACE FUNCTION bank.make_transfer(
 )
 RETURNS TABLE (tran_id int, tran_senderacc char(8), tran_receiveracc char(8), tran_amount int, tran_status varchar(50), tran_date date) AS $$
 BEGIN
-    IF amount <= 0 THEN
-        RAISE EXCEPTION 'Cannot transfer negative amount of money';
+    IF ((SELECT account_customerid FROM customer.account WHERE account_number = sender_accnum) = (SELECT account_customerid FROM customer.account WHERE account_number = receiver_accnum)) THEN
+        IF amount <= 0 THEN
+            RAISE EXCEPTION 'Cannot transfer negative amount of money';
+        END IF;
+
+        -- check if sender account exists
+        IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = sender_accnum) THEN
+            RAISE EXCEPTION 'Sender account does not exist';
+        END IF;
+
+        -- check if receiver account exists
+        IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = receiver_accnum) THEN
+            RAISE EXCEPTION 'Receiver account does not exist';
+        END IF;
+
+        -- check if sender has sufficient funds
+        IF (SELECT account_balance FROM customer.account WHERE account_number = sender_accnum) < amount THEN
+            RAISE EXCEPTION 'Insufficient funds in sender account';
+        END IF;
+
+        -- update sender account balance
+        UPDATE customer.account SET account_balance = account_balance - amount WHERE account_number = sender_accnum;
+
+        -- update receiver account balance
+        UPDATE customer.account SET account_balance = account_balance + amount WHERE account_number = receiver_accnum;
+
+        -- insert transfer into customer.transfer table
+        INSERT INTO customer.transfer (transfer_id, transfer_senderaccnum, transfer_receiveraccnum, transfer_amount, transfer_status, transfer_date)
+        VALUES (nextval('customer.transfer_transfer_id_seq'), sender_accnum, receiver_accnum, amount, 'COMPLETE', NOW());
+
+        -- insert transfer into customer.transaction_pending table
+        INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_transferid)
+        VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'TRANSFER', false, true, currval('customer.transfer_transfer_id_seq'));
+
+        INSERT INTO customer.transaction(transaction_id, transaction_complete)
+        VALUES(nextval('customer.transaction_transaction_id_seq'), currval('customer.transaction_pending_pending_transactionid_seq'));
+
+    ELSE
+        RAISE EXCEPTION 'The receiving account does not exist or is not yours. You can only transfer money between your own accounts.';
     END IF;
-
-    -- check if sender account exists
-    IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = sender_accnum) THEN
-        RAISE EXCEPTION 'Sender account does not exist';
-    END IF;
-
-    -- check if receiver account exists
-    IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = receiver_accnum) THEN
-        RAISE EXCEPTION 'Receiver account does not exist';
-    END IF;
-
-    -- check if sender has sufficient funds
-    IF (SELECT account_balance FROM customer.account WHERE account_number = sender_accnum) < amount THEN
-        RAISE EXCEPTION 'Insufficient funds in sender account';
-    END IF;
-
-    -- update sender account balance
-    UPDATE customer.account SET account_balance = account_balance - amount WHERE account_number = sender_accnum;
-
-    -- update receiver account balance
-    UPDATE customer.account SET account_balance = account_balance + amount WHERE account_number = receiver_accnum;
-
-    -- insert transfer into customer.transfer table
-    INSERT INTO customer.transfer (transfer_id, transfer_senderaccnum, transfer_receiveraccnum, transfer_amount, transfer_status, transfer_date)
-    VALUES (nextval('customer.transfer_transfer_id_seq'), sender_accnum, receiver_accnum, amount, 'COMPLETE', NOW());
-
-    -- insert transfer into customer.transaction_pending table
-    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_transferid)
-    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'TRANSFER', false, true, currval('customer.transfer_transfer_id_seq'));
-
+    
     RETURN QUERY
     SELECT *
     FROM customer.transfer t
@@ -327,7 +368,6 @@ BEGIN
             UPDATE customer.transfer t
             SET transfer_status = 'COMPLETE'
             FROM customer.transaction_pending tr
-                --JOIN customer.transaction_pending tr ON t.transfer_id = tr.transfer_id 
             WHERE t.transfer_id = tr.pending_transferid;
         END IF;
 
@@ -335,7 +375,6 @@ BEGIN
             UPDATE customer.payment p
             SET payment_status = 'COMPLETE'
             FROM customer.transaction_pending tr
-                --JOIN customer.transaction_pending tr ON t.transfer_id = tr.transfer_id 
             WHERE p.payment_id = tr.pending_paymentid;
         END IF;
 
@@ -344,11 +383,20 @@ BEGIN
             SET loan_status = 'COMPLETE'
             FROM customer.transaction_pending tr
             WHERE l.loan_id = tr.pending_paymentid;
+
+            UPDATE customer.account
+            SET account_balance = account_balance + (SELECT loantype_amount FROM bank.loan_type lt JOIN bank.loan l ON l.loan_type = lt.loantype_id WHERE l.loan_id = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id))
+            WHERE account_loan = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id);
+
         END IF;
          
         -- Update approvals record
         INSERT INTO manager.approval(approval_id,approval_date,approval_transaction)
         VALUES (nextval('manager.approval_approval_id_seq'),NOW(),tran_id);
+
+        -- Update transaction record
+        INSERT INTO customer.transaction(transaction_id, transaction_complete)
+        VALUES(nextval('customer.transaction_transaction_id_seq'),tran_id);
 
     ELSIF EXISTS (SELECT * FROM customer.transaction_pending WHERE (pending_sensitiveflag = false OR pending_approvalflag = true) AND pending_transactionid = tran_id) THEN
         RAISE EXCEPTION 'Transaction is not sensitive or does not need approval.';

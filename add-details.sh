@@ -28,8 +28,8 @@ psql -c "INSERT INTO bank.loan_type (loantype_id, loantype_amount, loantype_inte
 "
 
 
-psql -c "INSERT INTO bank.loan (loan_id, loan_type, loan_status) VALUES
-(nextval('bank.loan_loan_id_seq'),1,'PENDING');
+psql -c "INSERT INTO bank.loan (loan_id, loan_type, loan_status, loan_date) VALUES
+(nextval('bank.loan_loan_id_seq'),1,'PENDING', NOW());
 "
 
 

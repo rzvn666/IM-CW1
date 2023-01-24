@@ -1,4 +1,3 @@
-
 CREATE TABLE bank.bank (
     bank_id SERIAL PRIMARY KEY,
     bank_name character varying(50) NOT NULL,
@@ -32,7 +31,8 @@ CREATE TABLE bank.loan_type (
 CREATE TABLE bank.loan(
     loan_id SERIAL PRIMARY KEY,
     loan_type INT NOT NULL REFERENCES bank.loan_type(loantype_id),
-    loan_status varchar(50) NOT NULL
+    loan_status varchar(50) NOT NULL,
+    loan_date DATE NOT NULL
 );
 
 CREATE TABLE customer.customer (
@@ -116,5 +116,5 @@ CREATE TABLE manager.approval (
 
 CREATE TABLE customer.transaction (
     transaction_id SERIAL PRIMARY KEY,
-    transaction_complete integer NOT NULL REFERENCES customer.transaction_pending(pending_transactionid)
+    transaction_complete integer NOT NULL REFERENCES customer.transaction_pending(pending_transactionid) UNIQUE
 );
