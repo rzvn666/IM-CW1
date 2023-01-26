@@ -47,6 +47,7 @@ CREATE TABLE bank.loan_type (
 CREATE TABLE bank.loan(
     loan_id SERIAL PRIMARY KEY,
     loan_type INT NOT NULL REFERENCES bank.loan_type(loantype_id),
+    loan_outstanding INT,
     loan_status varchar(50) NOT NULL,
     loan_date DATE NOT NULL
 );
@@ -127,6 +128,7 @@ CREATE TABLE customer.transaction_pending (
 
 CREATE TABLE manager.approval (
     approval_id SERIAL PRIMARY KEY,
+    approval_employee INT NOT NULL REFERENCES employee.employee(employee_id),
     approval_date date NOT NULL,
     approval_transaction integer NOT NULL REFERENCES customer.transaction_pending(pending_transactionid)
 );
@@ -248,10 +250,10 @@ $$ LANGUAGE plpgsql;
 
 -- check loan
 CREATE OR REPLACE FUNCTION customer.check_loans(IN c_id INTEGER)
-RETURNS TABLE(account_number char(8), loan_amount int, loan_interest real, loan_term int, loan_status varchar(50) ,loan_date date) AS $$
+RETURNS TABLE(account_number char(8), amount int, outstanding_balance int, interest real, term int, status varchar(50) ,date date) AS $$
 BEGIN
     RETURN QUERY 
-    SELECT a.account_number, lt.loantype_amount, lt.loantype_interest, lt.loantype_term, l.loan_status ,l.loan_date
+    SELECT a.account_number, lt.loantype_amount, l.loan_outstanding, lt.loantype_interest, lt.loantype_term, l.loan_status ,l.loan_date
     FROM customer.account a
     JOIN bank.loan l ON a.account_loan = l.loan_id
     JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id
@@ -373,6 +375,64 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- make a loan payment
+CREATE OR REPLACE FUNCTION bank.pay_loan(param_accnum char(8), param_amount int)
+RETURNS TABLE (pay_id INTEGER, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), pay_receivername varchar(255), pay_amount INTEGER, pay_status varchar(50), pay_date DATE) AS $$
+BEGIN
+    IF param_amount <= 0 THEN
+        RAISE EXCEPTION 'Cannot pay negative amount of money.';
+    END IF;
+
+    -- check if sender account exists
+    IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = param_accnum) THEN
+        RAISE EXCEPTION 'Account does not exist.';
+    END IF;
+
+    -- check if sender has sufficient funds
+    IF (SELECT account_balance FROM customer.account WHERE account_number = param_accnum) < param_amount THEN
+        RAISE EXCEPTION 'Insufficient funds in account.';
+    END IF;
+
+    -- check if sender has sufficient funds
+    IF (SELECT loan_outstanding FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan WHERE account_number = param_accnum) < param_amount THEN
+        RAISE EXCEPTION 'You cannot pay more that the outstanding balance.';
+    END IF;
+
+    -- check if sender has a loan to pay back
+    IF EXISTS (SELECT 1 FROM customer.account WHERE account_number = param_accnum AND account_loan IS NULL) THEN
+        RAISE EXCEPTION 'No loan to pay back.';
+    END IF;
+
+    -- check if the loan is pending
+    IF (SELECT loan_status FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan WHERE account_number = param_accnum) = 'PENDING' THEN
+        RAISE EXCEPTION 'Loan is pending. You cannot pay back now.';
+    END IF;
+
+    -- update account balance
+    UPDATE customer.account SET account_balance = account_balance - param_amount WHERE account_number = param_accnum;
+    
+    -- update loan outstanding balance
+    UPDATE bank.loan l SET loan_outstanding = loan_outstanding - param_amount FROM customer.account a WHERE l.loan_id = a.account_loan AND a.account_number = param_accnum;
+
+    -- insert payment into customer.payment table
+    INSERT INTO customer.payment (payment_id, payment_accountnum, payment_receiveraccnum, payment_receiversortcode, payment_receivername, payment_amount, payment_status, payment_date)
+    VALUES (nextval('customer.payment_payment_id_seq'), param_accnum, '00000000', '000000', 'LOAN PAYMENT', param_amount, 'COMPLETE', NOW());
+
+    -- insert payment into customer.transaction_pending table
+    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_paymentid)
+    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'LOAN PAYMENT', false, true, currval('customer.payment_payment_id_seq'));
+
+    INSERT INTO customer.transaction(transaction_id, transaction_complete)
+    VALUES(nextval('customer.transaction_transaction_id_seq'), currval('customer.transaction_pending_pending_transactionid_seq'));
+
+    RETURN QUERY
+    SELECT *
+    FROM customer.payment p
+    WHERE p.payment_id = currval('customer.payment_payment_id_seq');
+
+END;
+$$ LANGUAGE plpgsql;
+
 
 -- make a transfer
 CREATE OR REPLACE FUNCTION bank.make_transfer(
@@ -384,22 +444,22 @@ RETURNS TABLE (tran_id int, tran_senderacc char(8), tran_receiveracc char(8), tr
 BEGIN
     IF ((SELECT account_customerid FROM customer.account WHERE account_number = sender_accnum) = (SELECT account_customerid FROM customer.account WHERE account_number = receiver_accnum)) THEN
         IF amount <= 0 THEN
-            RAISE EXCEPTION 'Cannot transfer negative amount of money';
+            RAISE EXCEPTION 'Cannot transfer negative amount of money.';
         END IF;
 
         -- check if sender account exists
         IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = sender_accnum) THEN
-            RAISE EXCEPTION 'Sender account does not exist';
+            RAISE EXCEPTION 'Sender account does not exist.';
         END IF;
 
         -- check if receiver account exists
         IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = receiver_accnum) THEN
-            RAISE EXCEPTION 'Receiver account does not exist';
+            RAISE EXCEPTION 'Receiver account does not exist.';
         END IF;
 
         -- check if sender has sufficient funds
         IF (SELECT account_balance FROM customer.account WHERE account_number = sender_accnum) < amount THEN
-            RAISE EXCEPTION 'Insufficient funds in sender account';
+            RAISE EXCEPTION 'Insufficient funds in sender account.';
         END IF;
 
         -- update sender account balance
@@ -432,55 +492,79 @@ $$ LANGUAGE plpgsql;
 
 
 -- manager approval of transaction procedure (loans, credit limits)
-CREATE OR REPLACE FUNCTION manager.approve_pending(tran_id int)
-RETURNS TABLE(appr_id int, appr_date date, appr_tran int) AS $$
+CREATE OR REPLACE FUNCTION manager.approve_pending(param_employee int, tran_id int)
+RETURNS TABLE(appr_id int, appr_employee int, appr_date date, appr_tran int) AS $$
 BEGIN
-    -- Update pending transactions with sensitive flag set to true if sensitive flag is set to true
-    IF EXISTS (SELECT * FROM customer.transaction_pending WHERE pending_sensitiveflag = true AND pending_approvalflag = false AND pending_transactionid = tran_id) THEN
-        UPDATE customer.transaction_pending
-        SET pending_approvalflag = true
-        WHERE pending_sensitiveflag = true AND pending_transactionid = tran_id;
+    IF (SELECT er.employeerole_name FROM employee.employee e JOIN employee.employee_roles er ON e.employee_role = er.employeerole_id WHERE e.employee_id = param_employee) = 'Manager' THEN
+        -- Update pending transactions with sensitive flag set to true if sensitive flag is set to true
+        IF EXISTS (SELECT * FROM customer.transaction_pending WHERE pending_sensitiveflag = true AND pending_approvalflag = false AND pending_transactionid = tran_id) THEN
+            UPDATE customer.transaction_pending
+            SET pending_approvalflag = true
+            WHERE pending_sensitiveflag = true AND pending_transactionid = tran_id;
 
-        IF EXISTS (SELECT pending_transferid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
-            UPDATE customer.transfer t
-            SET transfer_status = 'COMPLETE'
-            FROM customer.transaction_pending tr
-            WHERE t.transfer_id = tr.pending_transferid;
+            IF EXISTS (SELECT pending_transferid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+                UPDATE customer.transfer t
+                SET transfer_status = 'COMPLETE'
+                FROM customer.transaction_pending tr
+                WHERE t.transfer_id = tr.pending_transferid;
+            END IF;
+
+            IF EXISTS (SELECT pending_paymentid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+                UPDATE customer.payment p
+                SET payment_status = 'COMPLETE'
+                FROM customer.transaction_pending tr
+                WHERE p.payment_id = tr.pending_paymentid;
+            END IF;
+
+            IF EXISTS (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+                UPDATE bank.loan l
+                SET loan_status = 'ACTIVE'
+                FROM customer.transaction_pending tr
+                WHERE l.loan_id = tr.pending_loanid;
+
+                UPDATE bank.loan
+                SET loan_outstanding = 
+                (
+                    SELECT lt.loantype_amount 
+                    FROM customer.transaction_pending tp 
+                    JOIN bank.loan l ON l.loan_id = tp.pending_loanid 
+                    JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id 
+                    WHERE tp.pending_transactionid = tran_id
+                )
+                * (( SELECT lt.loantype_interest
+                    FROM customer.transaction_pending tp 
+                    JOIN bank.loan l ON l.loan_id = tp.pending_loanid 
+                    JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id 
+                    WHERE tp.pending_transactionid = tran_id 
+                )+1)
+                
+                FROM customer.transaction_pending tr
+                WHERE loan_id = tr.pending_loanid; 
+
+                UPDATE customer.account
+                SET account_balance = account_balance + (SELECT loantype_amount FROM bank.loan_type lt JOIN bank.loan l ON l.loan_type = lt.loantype_id WHERE l.loan_id = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id))
+                WHERE account_loan = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id);
+
+            END IF;
+            
+            -- Update approvals record
+            INSERT INTO manager.approval(approval_id, approval_employee, approval_date,approval_transaction)
+            VALUES (nextval('manager.approval_approval_id_seq'), param_employee, NOW(), tran_id);
+
+            -- Update transaction record
+            INSERT INTO customer.transaction(transaction_id, transaction_complete)
+            VALUES(nextval('customer.transaction_transaction_id_seq'), tran_id);
+
+        ELSIF EXISTS (SELECT * FROM customer.transaction_pending WHERE (pending_sensitiveflag = false OR pending_approvalflag = true) AND pending_transactionid = tran_id) THEN
+            RAISE EXCEPTION 'Transaction is not sensitive or does not need approval.';
+
+        ELSE
+            RAISE EXCEPTION 'No transaction found';
+
         END IF;
-
-        IF EXISTS (SELECT pending_paymentid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
-            UPDATE customer.payment p
-            SET payment_status = 'COMPLETE'
-            FROM customer.transaction_pending tr
-            WHERE p.payment_id = tr.pending_paymentid;
-        END IF;
-
-        IF EXISTS (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
-            UPDATE bank.loan l
-            SET loan_status = 'COMPLETE'
-            FROM customer.transaction_pending tr
-            WHERE l.loan_id = tr.pending_paymentid;
-
-            UPDATE customer.account
-            SET account_balance = account_balance + (SELECT loantype_amount FROM bank.loan_type lt JOIN bank.loan l ON l.loan_type = lt.loantype_id WHERE l.loan_id = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id))
-            WHERE account_loan = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id);
-
-        END IF;
-         
-        -- Update approvals record
-        INSERT INTO manager.approval(approval_id,approval_date,approval_transaction)
-        VALUES (nextval('manager.approval_approval_id_seq'),NOW(),tran_id);
-
-        -- Update transaction record
-        INSERT INTO customer.transaction(transaction_id, transaction_complete)
-        VALUES(nextval('customer.transaction_transaction_id_seq'),tran_id);
-
-    ELSIF EXISTS (SELECT * FROM customer.transaction_pending WHERE (pending_sensitiveflag = false OR pending_approvalflag = true) AND pending_transactionid = tran_id) THEN
-        RAISE EXCEPTION 'Transaction is not sensitive or does not need approval.';
 
     ELSE
-        RAISE EXCEPTION 'No transaction found';
-
+        RAISE EXCEPTION 'Employee is not a manager';
     END IF;
 
     RETURN QUERY
