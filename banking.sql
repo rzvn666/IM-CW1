@@ -63,7 +63,6 @@ CREATE TABLE customer.customer (
     customer_postcode character varying(10) NOT NULL
 );
 
-
 CREATE TABLE customer.account (
     account_number character(8) PRIMARY KEY,
     account_sortcode character(6) NOT NULL REFERENCES bank.branch(branch_sortcode),
@@ -76,22 +75,24 @@ CREATE TABLE customer.account (
     account_opendate date NOT NULL
 );
 
+CREATE TABLE employee.employee_roles(
+    employeerole_id SERIAL PRIMARY KEY,
+    employeerole_name varchar(255) NOT NULL
+);
 
 CREATE TABLE employee.employee (
     employee_id SERIAL PRIMARY KEY,
     employee_sortcode character(6) NOT NULL REFERENCES bank.branch(branch_sortcode),
     employee_username character varying(255) NOT NULL,
     employee_password character varying(255) NOT NULL,
-    employee_role character varying(50) NOT NULL,
+    employee_role int NOT NULL REFERENCES employee.employee_roles(employeerole_id),
     employee_fname character varying(50) NOT NULL,
     employee_lname character varying(50) NOT NULL,
-    employee_mobile character(11) NOT NULL,
-    employee_email character varying(50) NOT NULL,
+    employee_mobile character(11) NOT NULL UNIQUE,
+    employee_email character varying(50) NOT NULL UNIQUE,
     employee_address character varying(255) NOT NULL,
     employee_postcode character varying(10) NOT NULL
 );
-
-
 
 CREATE TABLE customer.payment (
     payment_id SERIAL PRIMARY KEY,
@@ -138,22 +139,18 @@ CREATE TABLE customer.transaction (
 
 -- all functions and procedures
 
--- IMPEMENT
--- CREDIT LIMIT
--- IF YOU WANT TO
-
-CREATE OR REPLACE FUNCTION customer.create_customer(param_uname varchar(30), param_pass varchar(30), param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
+-- customer can open an account
+CREATE OR REPLACE FUNCTION bank.create_customer(param_uname varchar(30), param_pass varchar(30), param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
 RETURNS void AS $$
 BEGIN
-    INSERT INTO customer.customer
+    INSERT INTO customer.customer (customer_id, customer_username, customer_password, customer_fname, customer_lname, customer_mobile, customer_email, customer_address, customer_postcode)
     VALUES(nextval('customer.customer_customer_id_seq'),param_uname, param_pass, param_fname, param_lname, param_mobile, param_email, param_address, param_postcode);
 END;
 $$ LANGUAGE plpgsql;
 
 
 -- existing customer can open another account and new customers can open account first account
-
-CREATE OR REPLACE FUNCTION customer.create_account(param_accountnum char(8), param_sortcode char(6), param_customerid int, param_accountype int, param_accountname varchar(255))
+CREATE OR REPLACE FUNCTION bank.create_account(param_accountnum char(8), param_sortcode char(6), param_customerid int, param_accountype int, param_accountname varchar(255))
 RETURNS void AS $$
 BEGIN
     
@@ -168,9 +165,42 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- customer can check their details
+CREATE OR REPLACE FUNCTION customer.check_customer(id INTEGER)
+RETURNS TABLE (first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
+BEGIN
+  -- return customer details for the table
+  RETURN QUERY 
+  SELECT customer_fname, customer_lname, customer_mobile, customer_email, customer_address, customer_postcode
+  FROM customer.customer 
+  WHERE customer_id = id;
+
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    RAISE EXCEPTION 'Customer % not found', id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- customer can see their bank account details
+CREATE OR REPLACE FUNCTION customer.check_accounts(id INTEGER)
+RETURNS TABLE (account_number char(8), sort_code char(6), type varchar(100), loan int, balance int, name varchar(255), iban varchar(34), open_date date) AS $$
+BEGIN
+  -- returns bank account details
+  RETURN QUERY 
+  SELECT a.account_number, a.account_sortcode, at.type_name, a.account_loan, a.account_balance, a.account_name, a.account_iban, a.account_opendate
+  FROM customer.account a
+  JOIN bank.account_type at ON a.account_type = at.type_id
+  WHERE a.account_customerid = id;
+
+-- if the customer does not exist
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    RAISE EXCEPTION 'Customer % not found', id;
+END;
+$$ LANGUAGE plpgsql;
 
 -- customer can see their balance function
-CREATE OR REPLACE FUNCTION customer.check_all_account_balances(id INTEGER)
+CREATE OR REPLACE FUNCTION customer.check_balances(id INTEGER)
 RETURNS TABLE (account_number character(8), account_name varchar(255), account_type varchar(100), account_balance INTEGER) AS $$
 BEGIN
   -- check if the customer exists
@@ -180,9 +210,85 @@ BEGIN
   JOIN bank.account_type at ON a.account_type = at.type_id
   WHERE a.account_customerid = id;
 
+-- if the customer does not exist
 EXCEPTION
   WHEN NO_DATA_FOUND THEN
     RAISE EXCEPTION 'Customer % not found', id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- check transfers
+CREATE OR REPLACE FUNCTION customer.check_transfers(IN c_id INTEGER)
+RETURNS TABLE(transaction_id INTEGER, transaction_ref character varying(255), transfer_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), amount INTEGER, status varchar(50), date DATE)
+AS $$
+#variable_conflict use_column
+BEGIN
+    RETURN QUERY 
+    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_transferid, tr.transfer_senderaccnum, tr.transfer_receiveraccnum, tr.transfer_amount, tr.transfer_status, tr.transfer_date
+    FROM customer.transaction_pending t
+    JOIN customer.transfer tr ON t.pending_transferid = tr.transfer_id
+    WHERE tr.transfer_senderaccnum IN (SELECT account_number FROM customer.account WHERE account_customerid = c_id);
+END;
+$$ LANGUAGE plpgsql;
+
+-- check payments
+CREATE OR REPLACE FUNCTION customer.check_payments(IN c_id INTEGER)
+RETURNS TABLE(transaction_id INTEGER, transaction_ref character varying(255), payment_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), receiver_sortcode CHARACTER(6), payment_receivername character varying(255), amount INTEGER, status varchar(50), date DATE) AS $$
+#variable_conflict use_column
+BEGIN
+    RETURN QUERY 
+    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_paymentid, p.payment_accountnum, p.payment_receiveraccnum, p.payment_receiversortcode, p.payment_receivername, p.payment_amount, p.payment_status, p.payment_date
+    FROM customer.transaction_pending t
+    JOIN customer.payment p ON t.pending_paymentid = p.payment_id
+    WHERE p.payment_accountnum IN (SELECT account_number FROM customer.account WHERE account_customerid = c_id);
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- check loan
+CREATE OR REPLACE FUNCTION customer.check_loans(IN c_id INTEGER)
+RETURNS TABLE(account_number char(8), loan_amount int, loan_interest real, loan_term int, loan_status varchar(50) ,loan_date date) AS $$
+BEGIN
+    RETURN QUERY 
+    SELECT a.account_number, lt.loantype_amount, lt.loantype_interest, lt.loantype_term, l.loan_status ,l.loan_date
+    FROM customer.account a
+    JOIN bank.loan l ON a.account_loan = l.loan_id
+    JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id
+    WHERE a.account_customerid = c_id;
+
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    RAISE EXCEPTION 'No loans found';
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- create a new employee
+CREATE OR REPLACE FUNCTION bank.create_employee(param_sortcode char(6), param_uname varchar(255), param_pass varchar(255), param_role int, param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
+RETURNS void AS $$
+BEGIN
+    INSERT INTO employee.employee (employee_id, employee_sortcode, employee_username, employee_password, employee_role, employee_fname, employee_lname, employee_mobile, employee_email, employee_address, employee_postcode)
+    VALUES(nextval('employee.employee_employee_id_seq'), param_sortcode, param_uname, param_pass, param_role, param_fname, param_lname, param_mobile, param_email, param_address, param_postcode);
+END;
+$$ LANGUAGE plpgsql;
+
+-- checking an employee details
+CREATE OR REPLACE FUNCTION employee.check_employee(id INTEGER)
+RETURNS TABLE (branch varchar(50), role varchar(255), first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
+BEGIN
+  -- returns employee details
+  RETURN QUERY 
+  SELECT br.branch_name, er.employeerole_name, e.employee_fname, e.employee_lname, e.employee_mobile, e.employee_email, e.employee_address, e.employee_postcode
+  FROM employee.employee e
+  JOIN employee.employee_roles er ON e.employee_role = er.employeerole_id
+  JOIN bank.branch br ON e.employee_sortcode = br.branch_sortcode
+  WHERE e.employee_id = id;
+
+-- if the customer does not exist
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    RAISE EXCEPTION 'Employee % not found', id;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -325,37 +431,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 
--- check a transfer
-CREATE OR REPLACE FUNCTION customer.check_transfer_transactions(IN c_id INTEGER)
-RETURNS TABLE(transaction_id INTEGER, transaction_ref character varying(255), transfer_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), amount INTEGER, status varchar(50), date DATE)
-AS $$
-#variable_conflict use_column
-BEGIN
-    RETURN QUERY 
-    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_transferid, tr.transfer_senderaccnum, tr.transfer_receiveraccnum, tr.transfer_amount, tr.transfer_status, tr.transfer_date
-    FROM customer.transaction_pending t
-    JOIN customer.transfer tr ON t.pending_transferid = tr.transfer_id
-    WHERE tr.transfer_senderaccnum IN (SELECT account_number FROM customer.account WHERE account_customerid = c_id);
-END;
-$$ LANGUAGE plpgsql;
-
--- check a payment
-CREATE OR REPLACE FUNCTION customer.check_payment_transactions(IN c_id INTEGER)
-RETURNS TABLE(transaction_id INTEGER, transaction_ref character varying(255), payment_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), receiver_sortcode CHARACTER(6), payment_receivername character varying(255), amount INTEGER, status varchar(50), date DATE)
-AS $$
-#variable_conflict use_column
-BEGIN
-    RETURN QUERY 
-    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_paymentid, p.payment_accountnum, p.payment_receiveraccnum, p.payment_receiversortcode, p.payment_receivername, p.payment_amount, p.payment_status, p.payment_date
-    FROM customer.transaction_pending t
-    JOIN customer.payment p ON t.pending_paymentid = p.payment_id
-    WHERE p.payment_accountnum IN (SELECT account_number FROM customer.account WHERE account_customerid = c_id);
-END;
-$$ LANGUAGE plpgsql;
-
-
 -- manager approval of transaction procedure (loans, credit limits)
-CREATE OR REPLACE FUNCTION manager.approve_pending_transactions(tran_id int)
+CREATE OR REPLACE FUNCTION manager.approve_pending(tran_id int)
 RETURNS TABLE(appr_id int, appr_date date, appr_tran int) AS $$
 BEGIN
     -- Update pending transactions with sensitive flag set to true if sensitive flag is set to true
@@ -427,17 +504,34 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA manager TO role_bank;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA employee TO role_bank;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA customer TO role_bank;
 
-GRANT USAGE, SELECT ON SEQUENCE customer.transfer_transfer_id_seq TO role_bank;
-GRANT USAGE, SELECT ON SEQUENCE customer.transaction_pending_pending_transactionid_seq TO role_bank;
-
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA customer TO role_bank;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA employee TO role_bank;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA manager TO role_bank;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA bank TO role_bank;
 
 GRANT USAGE ON SCHEMA bank TO role_bank;
 GRANT USAGE ON SCHEMA manager TO role_bank;
 GRANT USAGE ON SCHEMA employee TO role_bank;
 GRANT USAGE ON SCHEMA customer TO role_bank;
 
-
 GRANT role_bank TO user_bank1;
+
+
+-- customer role and users, permission and privileges
+CREATE ROLE role_customer;
+CREATE ROLE user_customer1 WITH LOGIN PASSWORD 'test';
+
+GRANT USAGE ON SCHEMA customer TO role_customer;
+
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA customer TO role_customer;
+GRANT SELECT ON ALL TABLES IN SCHEMA customer TO role_customer;
+
+GRANT USAGE ON SCHEMA bank TO role_customer;
+GRANT SELECT ON TABLE bank.account_type TO role_customer;
+GRANT SELECT ON TABLE bank.loan TO role_customer;
+GRANT SELECT ON TABLE bank.loan_type TO role_customer;
+
+GRANT role_customer TO user_customer1;
 
 
 -- employee role and users, permission and privileges
@@ -447,37 +541,36 @@ CREATE ROLE user_employee1 WITH LOGIN PASSWORD 'test';
 GRANT USAGE ON SCHEMA employee TO role_employee;
 GRANT SELECT ON ALL TABLES IN SCHEMA employee TO role_employee;
 
-GRANT USAGE ON SCHEMA customer TO role_employee;
-GRANT SELECT ON TABLE customer.account TO role_employee;
-
 GRANT USAGE ON SCHEMA bank TO role_employee;
-GRANT SELECT ON TABLE bank.account_type TO role_employee;
+GRANT SELECT ON TABLE bank.branch TO role_employee;
 
 GRANT role_employee TO user_employee1;
+GRANT role_customer TO user_employee1;
 
 
 -- manager role and users, permission and privileges
 CREATE ROLE role_manager;
 CREATE ROLE user_manager1 WITH LOGIN PASSWORD 'test';
-GRANT USAGE ON SCHEMA manager TO role_manager;
-GRANT SELECT ON ALL TABLES IN SCHEMA manager TO role_manager;
 
-GRANT SELECT, UPDATE ON TABLE customer.transaction_pending TO role_manager;
+GRANT USAGE ON SCHEMA manager TO role_manager;
+GRANT SELECT, UPDATE, INSERT ON ALL TABLES IN SCHEMA manager TO role_manager;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA manager TO role_manager; 
+
+GRANT UPDATE ON TABLE customer.transaction_pending TO role_manager;
+GRANT INSERT ON TABLE customer.transaction TO role_manager;
+GRANT UPDATE ON TABLE customer.transfer TO role_manager;
+GRANT UPDATE ON TABLE customer.payment TO role_manager;
+GRANT UPDATE ON TABLE customer.account TO role_manager;
+
+GRANT USAGE, SELECT ON SEQUENCE customer.transaction_transaction_id_seq TO role_manager;
+
+
+GRANT SELECT, UPDATE ON TABLE bank.loan TO role_manager;
+GRANT SELECT ON TABLE bank.loan_type TO role_manager;
+
+GRANT USAGE ON SCHEMA bank TO role_manager;
+
 
 GRANT role_manager TO user_manager1;
 GRANT role_employee TO user_manager1;
-
--- customer role and users, permission and privileges
-CREATE ROLE role_customer;
-CREATE ROLE user_customer1 WITH LOGIN PASSWORD 'test';
-
-GRANT USAGE ON SCHEMA customer TO role_customer;
-GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA customer TO role_customer;
-
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA customer TO role_customer;
-GRANT SELECT ON ALL SEQUENCES IN SCHEMA customer TO role_customer;
-
-GRANT USAGE ON SCHEMA bank TO role_customer;
-GRANT SELECT ON TABLE bank.account_type TO role_customer;
-
-GRANT role_customer TO user_customer1;
+GRANT role_customer TO user_manager1;   

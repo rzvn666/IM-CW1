@@ -39,11 +39,11 @@ psql -c "INSERT INTO customer.customer (customer_id, customer_username, customer
 "
 
 
-psql -c "INSERT INTO customer.account (account_number, account_sortcode, account_customerid, account_type, account_balance, account_name, account_iban, account_opendate) VALUES
-('68932868','309921',1,1,2000,'bank account 1 andrew','GB73LOYD30992168932868',NOW()),
-('68932777','309921',1,1,500,'bank account 2 andrew','GB73LOYD30992168932777',NOW()),
-('68156222','386650',2,1,10000,'bank account 1 maria','GB73LOYD38665068156222',NOW()),
-('68156345','386650',2,1,65000,'bank account 2 maria','GB73LOYD38665068156345',NOW());
+psql -c "INSERT INTO customer.account (account_number, account_sortcode, account_customerid, account_type, account_loan, account_balance, account_name, account_iban, account_opendate) VALUES
+('68932868','309921',1,1,NULL,2000,'bank account 1 andrew','GB73LOYD30992168932868',NOW()),
+('68932777','309921',1,1,NULL,500,'bank account 2 andrew','GB73LOYD30992168932777',NOW()),
+('68156222','386650',2,1,NULL,10000,'bank account 1 maria','GB73LOYD38665068156222',NOW()),
+('68156345','386650',2,1,1,65000,'bank account 2 maria','GB73LOYD38665068156345',NOW());
 "
 
 psql -c "INSERT INTO customer.payment (payment_id, payment_accountnum, payment_receiveraccnum, payment_receiversortcode, payment_receivername, payment_amount, payment_status, payment_date) VALUES
@@ -55,6 +55,7 @@ psql -c "INSERT INTO customer.payment (payment_id, payment_accountnum, payment_r
 
 psql -c "INSERT INTO customer.transfer (transfer_id, transfer_senderaccnum, transfer_receiveraccnum, transfer_amount, transfer_status, transfer_date) VALUES
 (nextval('customer.transfer_transfer_id_seq'),'68932868','68932777',300,'COMPLETE',NOW()),
+(nextval('customer.transfer_transfer_id_seq'),'68932777','68932868',300,'PENDING',NOW()),
 (nextval('customer.transfer_transfer_id_seq'),'68156222','68156345',1200,'PENDING',NOW());
 "
 
@@ -64,7 +65,8 @@ psql -c "INSERT INTO customer.transaction_pending (pending_transactionid, pendin
 (nextval('customer.transaction_pending_pending_transactionid_seq'),'PAYMENT',NULL,3,NULL,false,true),
 (nextval('customer.transaction_pending_pending_transactionid_seq'),'PAYMENT',NULL,4,NULL,false,true),
 (nextval('customer.transaction_pending_pending_transactionid_seq'),'TRANSFER',1,NULL,NULL,false,true),
-(nextval('customer.transaction_pending_pending_transactionid_seq'),'TRANSFER',2,NULL,NULL,true,false),
+(nextval('customer.transaction_pending_pending_transactionid_seq'),'TRANSFER',2,NULL,NULL,false,true),
+(nextval('customer.transaction_pending_pending_transactionid_seq'),'TRANSFER',3,NULL,NULL,false,true),
 (nextval('customer.transaction_pending_pending_transactionid_seq'),'LOAN',NULL,NULL,1,true,false);
 "
 
@@ -78,8 +80,12 @@ psql -c "INSERT INTO customer.transaction_pending (pending_transactionid, pendin
 # ();
 # "
 
-    
+psql -c "INSERT INTO employee.employee_roles (employeerole_id, employeerole_name) VALUES
+(nextval('employee.employee_roles_employeerole_id_seq'),'Teller'),
+(nextval('employee.employee_roles_employeerole_id_seq'),'Manager');
+"
+   
 psql -c "INSERT INTO employee.employee (employee_id, employee_sortcode, employee_username, employee_password, employee_role, employee_fname, employee_lname, employee_mobile, employee_email, employee_address, employee_postcode) VALUES
-(nextval('employee.employee_employee_id_seq'),'309921','employeeuser','employeepass','employee','John','Doe','07495381704','johndoe@gmail.com','321 Regent Street','N127JE'),
-(nextval('employee.employee_employee_id_seq'),'309921','manageruser','managerpass','manager','Jane','Doe','07495385874','janedoe@gmail.com','1 Market Street','W36PE');
+(nextval('employee.employee_employee_id_seq'),'309921','employeeuser','employeepass',1,'John','Doe','07495381704','johndoe@gmail.com','321 Regent Street','N127JE'),
+(nextval('employee.employee_employee_id_seq'),'309921','manageruser','managerpass',2,'Jane','Doe','07495385874','janedoe@gmail.com','1 Market Street','W36PE');
 "
