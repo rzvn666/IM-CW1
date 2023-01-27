@@ -16,32 +16,32 @@ CREATE SCHEMA customer;
 
 CREATE TABLE bank.bank (
     bank_id SERIAL PRIMARY KEY,
-    bank_name character varying(50) NOT NULL,
-    bank_bic character(11) NOT NULL UNIQUE,
-    bank_address character varying(255) NOT NULL,
-    bank_postcode character varying(10) NOT NULL,
-    bank_country character varying(60) NOT NULL
+    bank_name varchar(50) NOT NULL,
+    bank_bic char(11) NOT NULL UNIQUE,
+    bank_address varchar(255) NOT NULL,
+    bank_postcode varchar(10) NOT NULL,
+    bank_country varchar(60) NOT NULL
 );
 
 CREATE TABLE bank.branch (
-    branch_sortcode character(6) PRIMARY KEY,
-    branch_bankid integer NOT NULL REFERENCES bank.bank(bank_id),
-    branch_name character varying(50) NOT NULL,
-    branch_address character varying(255) NOT NULL,
-    branch_postcode character varying(10) NOT NULL,
-    branch_country character varying(60) NOT NULL
+    branch_sortcode char(6) PRIMARY KEY,
+    branch_bankid int NOT NULL REFERENCES bank.bank(bank_id),
+    branch_name varchar(50) NOT NULL,
+    branch_address varchar(255) NOT NULL,
+    branch_postcode varchar(10) NOT NULL,
+    branch_country varchar(60) NOT NULL
 );
 
 CREATE TABLE bank.account_type (
     type_id SERIAL PRIMARY KEY,
-    type_name character varying(100) NOT NULL
+    type_name varchar(100) NOT NULL
 );
 
 CREATE TABLE bank.loan_type (
     loantype_id SERIAL PRIMARY KEY,
-    loantype_amount integer NOT NULL,
+    loantype_amount int NOT NULL,
     loantype_interest real NOT NULL,
-    loantype_term integer NOT NULL
+    loantype_term int NOT NULL
 );
 
 CREATE TABLE bank.loan(
@@ -54,25 +54,25 @@ CREATE TABLE bank.loan(
 
 CREATE TABLE customer.customer (
     customer_id SERIAL PRIMARY KEY,
-    customer_username character varying(30) NOT NULL UNIQUE,
-    customer_password character varying(30) NOT NULL,
-    customer_fname character varying(50) NOT NULL,
-    customer_lname character varying(50) NOT NULL,
-    customer_mobile character(11) NOT NULL UNIQUE,
-    customer_email character varying(50) NOT NULL UNIQUE,
-    customer_address character varying(255) NOT NULL,
-    customer_postcode character varying(10) NOT NULL
+    customer_username varchar(30) NOT NULL UNIQUE,
+    customer_password varchar(30) NOT NULL,
+    customer_fname varchar(50) NOT NULL,
+    customer_lname varchar(50) NOT NULL,
+    customer_mobile char(11) NOT NULL UNIQUE,
+    customer_email varchar(50) NOT NULL UNIQUE,
+    customer_address varchar(255) NOT NULL,
+    customer_postcode varchar(10) NOT NULL
 );
 
 CREATE TABLE customer.account (
-    account_number character(8) PRIMARY KEY,
-    account_sortcode character(6) NOT NULL REFERENCES bank.branch(branch_sortcode),
-    account_customerid integer NOT NULL REFERENCES customer.customer(customer_id),
-    account_type integer NOT NULL REFERENCES bank.account_type(type_id),
-    account_loan integer REFERENCES bank.loan(loan_id),
-    account_balance integer NOT NULL,
-    account_name character varying(255) NOT NULL,
-    account_iban character varying(34) NOT NULL,
+    account_number char(8) PRIMARY KEY,
+    account_sortcode char(6) NOT NULL REFERENCES bank.branch(branch_sortcode),
+    account_customerid int NOT NULL REFERENCES customer.customer(customer_id),
+    account_type int NOT NULL REFERENCES bank.account_type(type_id),
+    account_loan int REFERENCES bank.loan(loan_id),
+    account_balance int NOT NULL,
+    account_name varchar(255) NOT NULL,
+    account_iban varchar(34) NOT NULL,
     account_opendate date NOT NULL
 );
 
@@ -83,34 +83,34 @@ CREATE TABLE employee.employee_roles(
 
 CREATE TABLE employee.employee (
     employee_id SERIAL PRIMARY KEY,
-    employee_sortcode character(6) NOT NULL REFERENCES bank.branch(branch_sortcode),
-    employee_username character varying(255) NOT NULL,
-    employee_password character varying(255) NOT NULL,
+    employee_sortcode char(6) NOT NULL REFERENCES bank.branch(branch_sortcode),
+    employee_username varchar(255) NOT NULL,
+    employee_password varchar(255) NOT NULL,
     employee_role int NOT NULL REFERENCES employee.employee_roles(employeerole_id),
-    employee_fname character varying(50) NOT NULL,
-    employee_lname character varying(50) NOT NULL,
-    employee_mobile character(11) NOT NULL UNIQUE,
-    employee_email character varying(50) NOT NULL UNIQUE,
-    employee_address character varying(255) NOT NULL,
-    employee_postcode character varying(10) NOT NULL
+    employee_fname varchar(50) NOT NULL,
+    employee_lname varchar(50) NOT NULL,
+    employee_mobile char(11) NOT NULL UNIQUE,
+    employee_email varchar(50) NOT NULL UNIQUE,
+    employee_address varchar(255) NOT NULL,
+    employee_postcode varchar(10) NOT NULL
 );
 
 CREATE TABLE customer.payment (
     payment_id SERIAL PRIMARY KEY,
-    payment_accountnum character(8) NOT NULL REFERENCES customer.account(account_number),
-    payment_receiveraccnum character(8) NOT NULL,
-    payment_receiversortcode character(6) NOT NULL,
-    payment_receivername character varying(255) NOT NULL,
-    payment_amount integer NOT NULL,
+    payment_accountnum char(8) NOT NULL REFERENCES customer.account(account_number),
+    payment_receiveraccnum char(8) NOT NULL,
+    payment_receiversortcode char(6) NOT NULL,
+    payment_receivername varchar(255) NOT NULL,
+    payment_amount int NOT NULL,
     payment_status varchar(50) NOT NULL,
     payment_date date NOT NULL
 );
 
 CREATE TABLE customer.transfer (
     transfer_id SERIAL PRIMARY KEY,
-    transfer_senderaccnum character(8) NOT NULL REFERENCES customer.account(account_number),
-    transfer_receiveraccnum character(8) NOT NULL REFERENCES customer.account(account_number),
-    transfer_amount integer NOT NULL,
+    transfer_senderaccnum char(8) NOT NULL REFERENCES customer.account(account_number),
+    transfer_receiveraccnum char(8) NOT NULL REFERENCES customer.account(account_number),
+    transfer_amount int NOT NULL,
     transfer_status varchar(50) NOT NULL,
     transfer_date date NOT NULL
 );
@@ -118,10 +118,10 @@ CREATE TABLE customer.transfer (
 
 CREATE TABLE customer.transaction_pending (
     pending_transactionid SERIAL PRIMARY KEY,
-    pending_transactionref character varying(255) NOT NULL,
-    pending_transferid INTEGER REFERENCES customer.transfer(transfer_id),
-    pending_paymentid INTEGER REFERENCES customer.payment(payment_id),
-    pending_loanid INTEGER REFERENCES bank.loan(loan_id),
+    pending_transactionref varchar(255) NOT NULL,
+    pending_transferid int REFERENCES customer.transfer(transfer_id),
+    pending_paymentid int REFERENCES customer.payment(payment_id),
+    pending_loanid int REFERENCES bank.loan(loan_id),
     pending_sensitiveflag BOOLEAN NOT NULL,
     pending_approvalflag BOOLEAN NOT NULL
 );
@@ -130,45 +130,57 @@ CREATE TABLE manager.approval (
     approval_id SERIAL PRIMARY KEY,
     approval_employee INT NOT NULL REFERENCES employee.employee(employee_id),
     approval_date date NOT NULL,
-    approval_transaction integer NOT NULL REFERENCES customer.transaction_pending(pending_transactionid)
+    approval_transaction int NOT NULL REFERENCES customer.transaction_pending(pending_transactionid)
 );
 
 CREATE TABLE customer.transaction (
     transaction_id SERIAL PRIMARY KEY,
-    transaction_complete integer NOT NULL REFERENCES customer.transaction_pending(pending_transactionid) UNIQUE
+    transaction_complete int NOT NULL REFERENCES customer.transaction_pending(pending_transactionid) UNIQUE
 );
 
 
--- all functions and procedures
+-- #################################### all functions and procedures ####################################
 
 -- customer can open an account
 CREATE OR REPLACE FUNCTION bank.create_customer(param_uname varchar(30), param_pass varchar(30), param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
-RETURNS void AS $$
+RETURNS TABLE (username varchar(30), first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
 BEGIN
     INSERT INTO customer.customer (customer_id, customer_username, customer_password, customer_fname, customer_lname, customer_mobile, customer_email, customer_address, customer_postcode)
     VALUES(nextval('customer.customer_customer_id_seq'),param_uname, param_pass, param_fname, param_lname, param_mobile, param_email, param_address, param_postcode);
+
+  RETURN QUERY 
+  SELECT customer_username, customer_fname, customer_lname, customer_mobile, customer_email, customer_address, customer_postcode
+  FROM customer.customer 
+  WHERE customer_id = currval('customer.customer_customer_id_seq');
+
 END;
 $$ LANGUAGE plpgsql;
 
 
 -- existing customer can open another account and new customers can open account first account
-CREATE OR REPLACE FUNCTION bank.create_account(param_accountnum char(8), param_sortcode char(6), param_customerid int, param_accountype int, param_accountname varchar(255))
-RETURNS void AS $$
+CREATE OR REPLACE FUNCTION bank.create_account(param_username varchar(30), param_accountnum char(8), param_sortcode char(6), param_accountype int, param_accountname varchar(255))
+RETURNS TABLE(first_name varchar(50), last_name varchar(50), acc_number char(8), sort_code char(6), type int, balance int, name varchar(255), iban varchar(34), date date) AS $$
 BEGIN
     
     DECLARE 
         param_iban VARCHAR(50);
     BEGIN 
         param_iban := 'GB73LOYD' || param_sortcode || param_accountnum;
-    EXECUTE 'INSERT INTO customer.account(account_number, account_sortcode, account_customerid, account_type, account_balance, account_name, account_iban, account_opendate) VALUES ($1, $2, $3, $4, 0, $5, '''|| format(param_iban) ||''', NOW())'
-    USING param_accountnum, param_sortcode, param_customerid, param_accountype, param_accountname, param_iban;
+    EXECUTE 'INSERT INTO customer.account(account_number, account_sortcode, account_customerid, account_type, account_balance, account_name, account_iban, account_opendate) VALUES ($1, $2, $3, $4, 3000, $5, '''|| format(param_iban) ||''', NOW())'
+    USING param_accountnum, param_sortcode, (select customer_id from customer.customer where customer_username = param_username), param_accountype, param_accountname, param_iban;
     END;
+
+    RETURN QUERY
+    SELECT c.customer_fname, c.customer_lname, a.account_number, a.account_sortcode, a.account_type, a.account_balance, a.account_name, a.account_iban,a. account_opendate
+    FROM customer.account a
+    JOIN customer.customer c ON a.account_customerid = c.customer_id
+    WHERE account_number = param_accountnum;
 
 END;
 $$ LANGUAGE plpgsql;
 
 -- customer can check their details
-CREATE OR REPLACE FUNCTION customer.check_customer(id INTEGER)
+CREATE OR REPLACE FUNCTION customer.check_customer(id int)
 RETURNS TABLE (first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
 BEGIN
   -- return customer details for the table
@@ -184,7 +196,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- customer can see their bank account details
-CREATE OR REPLACE FUNCTION customer.check_accounts(id INTEGER)
+CREATE OR REPLACE FUNCTION customer.check_accounts(id int)
 RETURNS TABLE (account_number char(8), sort_code char(6), type varchar(100), loan int, balance int, name varchar(255), iban varchar(34), open_date date) AS $$
 BEGIN
   -- returns bank account details
@@ -201,9 +213,12 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
+
+
+
 -- customer can see their balance function
-CREATE OR REPLACE FUNCTION customer.check_balances(id INTEGER)
-RETURNS TABLE (account_number character(8), account_name varchar(255), account_type varchar(100), account_balance INTEGER) AS $$
+CREATE OR REPLACE FUNCTION customer.check_balances(id int)
+RETURNS TABLE (account_number char(8), account_name varchar(255), account_type varchar(100), account_balance int) AS $$
 BEGIN
   -- check if the customer exists
   RETURN QUERY 
@@ -213,16 +228,16 @@ BEGIN
   WHERE a.account_customerid = id;
 
 -- if the customer does not exist
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    RAISE EXCEPTION 'Customer % not found', id;
+    IF NOT EXISTS (SELECT 1 FROM customer.customer WHERE customer_id=id) THEN
+        RAISE EXCEPTION 'Customer % not found', id;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
 
 -- check transfers
-CREATE OR REPLACE FUNCTION customer.check_transfers(IN c_id INTEGER)
-RETURNS TABLE(transaction_id INTEGER, transaction_ref character varying(255), transfer_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), amount INTEGER, status varchar(50), date DATE)
+CREATE OR REPLACE FUNCTION customer.check_transfers(IN c_id int)
+RETURNS TABLE(transaction_id int, transaction_ref varchar(255), transfer_id int, account_number char(8), receiver_accnum char(8), amount int, status varchar(50), date DATE)
 AS $$
 #variable_conflict use_column
 BEGIN
@@ -235,8 +250,8 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- check payments
-CREATE OR REPLACE FUNCTION customer.check_payments(IN c_id INTEGER)
-RETURNS TABLE(transaction_id INTEGER, transaction_ref character varying(255), payment_id INTEGER, account_number CHARACTER(8), receiver_accnum CHARACTER(8), receiver_sortcode CHARACTER(6), payment_receivername character varying(255), amount INTEGER, status varchar(50), date DATE) AS $$
+CREATE OR REPLACE FUNCTION customer.check_payments(IN c_id int)
+RETURNS TABLE(transaction_id int, transaction_ref varchar(255), payment_id int, account_number char(8), receiver_accnum char(8), receiver_sortcode char(6), payment_receivername varchar(255), amount int, status varchar(50), date DATE) AS $$
 #variable_conflict use_column
 BEGIN
     RETURN QUERY 
@@ -249,14 +264,15 @@ $$ LANGUAGE plpgsql;
 
 
 -- check loan
-CREATE OR REPLACE FUNCTION customer.check_loans(IN c_id INTEGER)
-RETURNS TABLE(account_number char(8), amount int, outstanding_balance int, interest real, term int, status varchar(50) ,date date) AS $$
+CREATE OR REPLACE FUNCTION customer.check_loans(IN c_id int)
+RETURNS TABLE(transaction int, loan_id int, account_number char(8), amount int, outstanding_balance int, interest real, term int, status varchar(50) ,date date) AS $$
 BEGIN
     RETURN QUERY 
-    SELECT a.account_number, lt.loantype_amount, l.loan_outstanding, lt.loantype_interest, lt.loantype_term, l.loan_status ,l.loan_date
+    SELECT tp.pending_transactionid, l.loan_id, a.account_number, lt.loantype_amount, l.loan_outstanding, lt.loantype_interest, lt.loantype_term, l.loan_status ,l.loan_date
     FROM customer.account a
     JOIN bank.loan l ON a.account_loan = l.loan_id
     JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id
+    JOIN customer.transaction_pending tp ON l.loan_id = tp.pending_loanid
     WHERE a.account_customerid = c_id;
 
 EXCEPTION
@@ -268,15 +284,23 @@ $$ LANGUAGE plpgsql;
 
 -- create a new employee
 CREATE OR REPLACE FUNCTION bank.create_employee(param_sortcode char(6), param_uname varchar(255), param_pass varchar(255), param_role int, param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
-RETURNS void AS $$
+RETURNS TABLE(branch varchar(50), role varchar(255), first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
 BEGIN
     INSERT INTO employee.employee (employee_id, employee_sortcode, employee_username, employee_password, employee_role, employee_fname, employee_lname, employee_mobile, employee_email, employee_address, employee_postcode)
     VALUES(nextval('employee.employee_employee_id_seq'), param_sortcode, param_uname, param_pass, param_role, param_fname, param_lname, param_mobile, param_email, param_address, param_postcode);
+    
+    RETURN QUERY 
+    SELECT br.branch_name, er.employeerole_name, e.employee_fname, e.employee_lname, e.employee_mobile, e.employee_email, e.employee_address, e.employee_postcode
+    FROM employee.employee e
+    JOIN employee.employee_roles er ON e.employee_role = er.employeerole_id
+    JOIN bank.branch br ON e.employee_sortcode = br.branch_sortcode
+    WHERE e.employee_id = currval('employee.employee_employee_id_seq');
+
 END;
 $$ LANGUAGE plpgsql;
 
 -- checking an employee details
-CREATE OR REPLACE FUNCTION employee.check_employee(id INTEGER)
+CREATE OR REPLACE FUNCTION employee.check_employee(id int)
 RETURNS TABLE (branch varchar(50), role varchar(255), first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
 BEGIN
   -- returns employee details
@@ -321,7 +345,7 @@ BEGIN
     END IF;
     
     RETURN QUERY
-    SELECT *
+    SELECT l.loan_id, l.loan_type, l.loan_status, l.loan_date, lt.loantype_id, lt.loantype_amount, lt.loantype_interest, lt.loantype_term
     FROM bank.loan l
     JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id
     WHERE loan_id = currval('bank.loan_loan_id_seq');
@@ -331,13 +355,13 @@ $$ LANGUAGE plpgsql;
 
 -- make a payment
 CREATE OR REPLACE FUNCTION bank.make_payment(
-    sender_accnum character(8),
-    receiver_accnum character(8),
-    receiver_sortcode character(6),
+    sender_accnum char(8),
+    receiver_accnum char(8),
+    receiver_sortcode char(6),
     receiver_name varchar(255),
-    amount integer
+    amount int
 )
-RETURNS TABLE (pay_id INTEGER, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), pay_receivername varchar(255), pay_amount INTEGER, pay_status varchar(50), pay_date DATE) AS $$
+RETURNS TABLE (pay_id int, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), pay_receivername varchar(255), pay_amount int, pay_status varchar(50), pay_date DATE) AS $$
 BEGIN
     IF amount <= 0 THEN
         RAISE EXCEPTION 'Cannot pay negative amount of money';
@@ -377,7 +401,7 @@ $$ LANGUAGE plpgsql;
 
 -- make a loan payment
 CREATE OR REPLACE FUNCTION bank.pay_loan(param_accnum char(8), param_amount int)
-RETURNS TABLE (pay_id INTEGER, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), pay_receivername varchar(255), pay_amount INTEGER, pay_status varchar(50), pay_date DATE) AS $$
+RETURNS TABLE (pay_id int, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), pay_receivername varchar(255), pay_amount int, pay_status varchar(50), pay_date DATE) AS $$
 BEGIN
     IF param_amount <= 0 THEN
         RAISE EXCEPTION 'Cannot pay negative amount of money.';
@@ -436,9 +460,9 @@ $$ LANGUAGE plpgsql;
 
 -- make a transfer
 CREATE OR REPLACE FUNCTION bank.make_transfer(
-    sender_accnum character(8),
-    receiver_accnum character(8),
-    amount integer
+    sender_accnum char(8),
+    receiver_accnum char(8),
+    amount int
 )
 RETURNS TABLE (tran_id int, tran_senderacc char(8), tran_receiveracc char(8), tran_amount int, tran_status varchar(50), tran_date date) AS $$
 BEGIN
