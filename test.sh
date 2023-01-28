@@ -1,6 +1,49 @@
 #!/bin/bash
+version='psql --version | rev | cut -c -4 | rev | cut -c -2'
+if $version; then
+    go=$(eval "$version")
+    foo='/etc/postgresql-'$go/
+    sudo cp config/* ${foo}
+
+    echo "
+    ##################################
+    CONFIG FILES MOVED SUCCESSFULLY
+    ##################################
+    "
+else
+    echo "
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    NO POSTGRESQL INSTALLED
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    "
+fi
+
+if sudo chown postgres:postgres ${foo}/pg_hba.conf && sudo chown postgres:postgres ${foo}/postgresql.conf; then
+    echo "
+    ##################################
+    CONFIG FILES CHOWN SUCCESSFUL
+    ##################################
+    "
+else
+    echo "
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    CONFIG FILES FAILED TO CHOWN
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    "
+fi
+
+if systemctl; then
+    sudo systemctl restart postgresql
+else 
+    echo "
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    NO SYSTEMCTL FOUND
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    "
+fi
 
 export PGHOST=localhost
+export PGPORT=5433
 export PGUSER=postgres
 export PGPASSWORD=postgres
 
@@ -22,19 +65,19 @@ psql -c "INSERT INTO bank.branch (branch_sortcode, branch_bankid, branch_name, b
 "
 
 
-psql -c "INSERT INTO bank.account_type (type_id, type_name) VALUES
-(nextval('bank.account_type_type_id_seq'),'Current Account');
+psql -c "INSERT INTO customer.account_type (type_id, type_name) VALUES
+(nextval('customer.account_type_type_id_seq'),'Current Account');
 "
 
 
-psql -c "INSERT INTO bank.loan_type (loantype_id, loantype_amount, loantype_interest, loantype_term) VALUES
-(nextval('bank.loan_type_loantype_id_seq'),10000,0.054,60),
-(nextval('bank.loan_type_loantype_id_seq'),25000,0.069,60);
+psql -c "INSERT INTO customer.loan_type (loantype_id, loantype_amount, loantype_interest, loantype_term) VALUES
+(nextval('customer.loan_type_loantype_id_seq'),10000,0.054,60),
+(nextval('customer.loan_type_loantype_id_seq'),25000,0.069,60);
 "
 
 
-psql -c "INSERT INTO bank.loan (loan_id, loan_type, loan_status, loan_date) VALUES
-(nextval('bank.loan_loan_id_seq'),1,'PENDING', NOW());
+psql -c "INSERT INTO customer.loan (loan_id, loan_type, loan_status, loan_date) VALUES
+(nextval('customer.loan_loan_id_seq'),1,'PENDING', NOW());
 "
 
 
@@ -347,21 +390,212 @@ echo
 psql -c "select * from customer.check_balances(3)"
 
 
-# @@@@@@@@@@@@@@@@@@@@@@@@@ testing erroneous data and unwanted shchema access @@@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@ testing erroneous data and unwanted schema access @@@@@@@@@@@@@@@@@@@@@@@@@
 
+
+
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@ customer testing @@@@@@@@@@@@@@@@@@@@@@@@@
+
+export PGUSER=user_customer1
+export PGPASSWORD=test
 
 echo && echo "
 @@@@@@@@@@@@@@@@@@@@@@@@@
-testing schema access
+testing customer role
 @@@@@@@@@@@@@@@@@@@@@@@@@"
 echo
 
 echo && echo "
 @@@@@@@@@@@@@@@@@@@@@@@@@
-customer accessing different schemas other than the \"customers\" one
+customer accessing functions in bank schema
 @@@@@@@@@@@@@@@@@@@@@@@@@"
 echo
 
+psql -c "select * from bank.make_transfer('68324767','68324676', 1000)"
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+customer accessing functions in employee schema
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from employee.check_employee(2)"
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+customer accessing functions in manager schema
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from manager.approve_pending(2,9)"
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+customer checking wrong customer details
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from customer.check_customer(7)"
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+customer checking wrong account details
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from customer.check_accounts(7)"
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+customer checking wrong balance details
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
 
 psql -c "select * from customer.check_balances(7)"
 
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@ employee testing @@@@@@@@@@@@@@@@@@@@@@@@@
+
+export PGUSER=user_employee1
+export PGPASSWORD=test
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+testing employee role
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+employee accessing functions in bank schema
+(has access to bank schema as bank.branch_sortcode attribute is needed;
+but does not have access to updating any tables)
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from bank.make_transfer('68324767','68324676', 1000)"
+
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+employee accessing functions in manager schema
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from manager.approve_pending(2,9)"
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+employee checking wrong employee details
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from employee.check_employee(7)"
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@ manager testing @@@@@@@@@@@@@@@@@@@@@@@@@
+
+export PGUSER=user_manager1
+export PGPASSWORD=test
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+testing manager role
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+manager accessing functions in bank schema 
+(has access to bank schema as bank.branch_sortcode attribute is needed;
+but does not have access to updating any tables)
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from bank.make_transfer('68324767','68324676', 1000)"
+
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+manager uses wrong employee details to approve transaction
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from manager.approve_pending(1,8)"
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+manager uses non-existent transaction details to approve transaction
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from manager.approve_pending(2,21)"
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@ bank testing @@@@@@@@@@@@@@@@@@@@@@@@@
+
+export PGUSER=user_bank1
+export PGPASSWORD=test
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+testing bank 
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+bank system pays loan with negative money
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from bank.pay_loan('68324767',-100000)"
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+bank system pays loan with more money than available
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from bank.pay_loan('68324767',100000)"
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+bank system pays to the wrong account
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from bank.pay_loan('12345678',11000)"
+
+echo
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+testing paying to a pending loan
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@ 
+bank system applying for a loan with customer account number 
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from bank.apply_loan('68932777',2)"
+
+
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@ 
+bank checking loans 
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from customer.check_loans(1)"
+
+
+echo && echo "
+@@@@@@@@@@@@@@@@@@@@@@@@@
+bank system tries to pay to a pending loan
+@@@@@@@@@@@@@@@@@@@@@@@@@"
+echo
+
+psql -c "select * from bank.pay_loan('68932777',50)"

@@ -32,21 +32,21 @@ CREATE TABLE bank.branch (
     branch_country varchar(60) NOT NULL
 );
 
-CREATE TABLE bank.account_type (
+CREATE TABLE customer.account_type (
     type_id SERIAL PRIMARY KEY,
     type_name varchar(100) NOT NULL
 );
 
-CREATE TABLE bank.loan_type (
+CREATE TABLE customer.loan_type (
     loantype_id SERIAL PRIMARY KEY,
     loantype_amount int NOT NULL,
     loantype_interest real NOT NULL,
     loantype_term int NOT NULL
 );
 
-CREATE TABLE bank.loan(
+CREATE TABLE customer.loan(
     loan_id SERIAL PRIMARY KEY,
-    loan_type INT NOT NULL REFERENCES bank.loan_type(loantype_id),
+    loan_type INT NOT NULL REFERENCES customer.loan_type(loantype_id),
     loan_outstanding INT,
     loan_status varchar(50) NOT NULL,
     loan_date DATE NOT NULL
@@ -68,8 +68,8 @@ CREATE TABLE customer.account (
     account_number char(8) PRIMARY KEY,
     account_sortcode char(6) NOT NULL REFERENCES bank.branch(branch_sortcode),
     account_customerid int NOT NULL REFERENCES customer.customer(customer_id),
-    account_type int NOT NULL REFERENCES bank.account_type(type_id),
-    account_loan int REFERENCES bank.loan(loan_id),
+    account_type int NOT NULL REFERENCES customer.account_type(type_id),
+    account_loan int REFERENCES customer.loan(loan_id),
     account_balance int NOT NULL,
     account_name varchar(255) NOT NULL,
     account_iban varchar(34) NOT NULL,
@@ -121,7 +121,7 @@ CREATE TABLE customer.transaction_pending (
     pending_transactionref varchar(255) NOT NULL,
     pending_transferid int REFERENCES customer.transfer(transfer_id),
     pending_paymentid int REFERENCES customer.payment(payment_id),
-    pending_loanid int REFERENCES bank.loan(loan_id),
+    pending_loanid int REFERENCES customer.loan(loan_id),
     pending_sensitiveflag BOOLEAN NOT NULL,
     pending_approvalflag BOOLEAN NOT NULL
 );
@@ -207,7 +207,7 @@ BEGIN
   a.account_balance, a.account_name, a.account_iban, a.account_opendate
   
   FROM customer.account a
-  JOIN bank.account_type at ON a.account_type = at.type_id
+  JOIN customer.account_type at ON a.account_type = at.type_id
   WHERE a.account_customerid = id;
 
 -- if the customer does not exist
@@ -219,8 +219,6 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
-
 -- customer can see their balance function
 CREATE OR REPLACE FUNCTION customer.check_balances(id int)
 RETURNS TABLE (account_number char(8), account_name varchar(255), account_type varchar(100), account_balance int) AS $$
@@ -229,7 +227,7 @@ BEGIN
   RETURN QUERY 
   SELECT a.account_number, a.account_name, at.type_name, a.account_balance 
   FROM customer.account a 
-  JOIN bank.account_type at ON a.account_type = at.type_id
+  JOIN customer.account_type at ON a.account_type = at.type_id
   WHERE a.account_customerid = id;
 
 -- if the customer does not exist
@@ -275,8 +273,8 @@ BEGIN
     RETURN QUERY 
     SELECT tp.pending_transactionid, l.loan_id, a.account_number, lt.loantype_amount, l.loan_outstanding, lt.loantype_interest, lt.loantype_term, l.loan_status ,l.loan_date
     FROM customer.account a
-    JOIN bank.loan l ON a.account_loan = l.loan_id
-    JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id
+    JOIN customer.loan l ON a.account_loan = l.loan_id
+    JOIN customer.loan_type lt ON l.loan_type = lt.loantype_id
     JOIN customer.transaction_pending tp ON l.loan_id = tp.pending_loanid
     WHERE a.account_customerid = c_id;
 
@@ -335,18 +333,18 @@ CREATE OR REPLACE FUNCTION bank.apply_loan(
 RETURNS TABLE (id_loan int, type_loan int, status_loan varchar(50), date_loan date, id_loantype int, amount_loantype int, interest_loantype real, term_loantype int ) AS $$
 BEGIN
     IF EXISTS (SELECT 1 FROM customer.account WHERE account_number = param_accountnum) THEN
-        -- insert transfer into bank.loan table
-        INSERT INTO bank.loan (loan_id, loan_type, loan_status, loan_date)
-        VALUES (nextval('bank.loan_loan_id_seq'), param_loantype, 'PENDING', NOW());
+        -- insert transfer into customer.loan table
+        INSERT INTO customer.loan (loan_id, loan_type, loan_status, loan_date)
+        VALUES (nextval('customer.loan_loan_id_seq'), param_loantype, 'PENDING', NOW());
 
         -- update customer.account table with loan
         UPDATE customer.account
-        SET account_loan = currval('bank.loan_loan_id_seq')
+        SET account_loan = currval('customer.loan_loan_id_seq')
         WHERE account_number = param_accountnum;
 
         -- insert transfer into customer.transaction_pending table
         INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_loanid)
-        VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'LOAN', true, false, currval('bank.loan_loan_id_seq'));
+        VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'LOAN', true, false, currval('customer.loan_loan_id_seq'));
 
     ELSE
         RAISE EXCEPTION 'Account does not exist';        
@@ -354,9 +352,9 @@ BEGIN
     
     RETURN QUERY
     SELECT l.loan_id, l.loan_type, l.loan_status, l.loan_date, lt.loantype_id, lt.loantype_amount, lt.loantype_interest, lt.loantype_term
-    FROM bank.loan l
-    JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id
-    WHERE loan_id = currval('bank.loan_loan_id_seq');
+    FROM customer.loan l
+    JOIN customer.loan_type lt ON l.loan_type = lt.loantype_id
+    WHERE loan_id = currval('customer.loan_loan_id_seq');
 END;
 $$ LANGUAGE plpgsql;
 
@@ -426,7 +424,7 @@ BEGIN
     END IF;
 
     -- check if sender has sufficient funds
-    IF (SELECT loan_outstanding FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan WHERE account_number = param_accnum) < param_amount THEN
+    IF (SELECT loan_outstanding FROM customer.loan l JOIN customer.account a ON l.loan_id = a.account_loan WHERE account_number = param_accnum) < param_amount THEN
         RAISE EXCEPTION 'You cannot pay more than the outstanding balance.';
     END IF;
 
@@ -436,7 +434,7 @@ BEGIN
     END IF;
 
     -- check if the loan is pending
-    IF (SELECT loan_status FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan WHERE account_number = param_accnum) = 'PENDING' THEN
+    IF (SELECT loan_status FROM customer.loan l JOIN customer.account a ON l.loan_id = a.account_loan WHERE account_number = param_accnum) = 'PENDING' THEN
         RAISE EXCEPTION 'Loan is pending. You cannot pay back now.';
     END IF;
 
@@ -444,7 +442,7 @@ BEGIN
     UPDATE customer.account SET account_balance = account_balance - param_amount WHERE account_number = param_accnum;
     
     -- update loan outstanding balance
-    UPDATE bank.loan l SET loan_outstanding = loan_outstanding - param_amount FROM customer.account a WHERE l.loan_id = a.account_loan AND a.account_number = param_accnum;
+    UPDATE customer.loan l SET loan_outstanding = loan_outstanding - param_amount FROM customer.account a WHERE l.loan_id = a.account_loan AND a.account_number = param_accnum;
 
     -- insert payment into customer.payment table
     INSERT INTO customer.payment (payment_id, payment_accountnum, payment_receiveraccnum, payment_receiversortcode, payment_receivername, payment_amount, payment_status, payment_date)
@@ -549,24 +547,24 @@ BEGIN
             END IF;
 
             IF EXISTS (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
-                UPDATE bank.loan l
+                UPDATE customer.loan l
                 SET loan_status = 'ACTIVE'
                 FROM customer.transaction_pending tr
                 WHERE l.loan_id = tr.pending_loanid;
 
-                UPDATE bank.loan
+                UPDATE customer.loan
                 SET loan_outstanding = 
                 (
                     SELECT lt.loantype_amount 
                     FROM customer.transaction_pending tp 
-                    JOIN bank.loan l ON l.loan_id = tp.pending_loanid 
-                    JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id 
+                    JOIN customer.loan l ON l.loan_id = tp.pending_loanid 
+                    JOIN customer.loan_type lt ON l.loan_type = lt.loantype_id 
                     WHERE tp.pending_transactionid = tran_id
                 )
                 * (( SELECT lt.loantype_interest
                     FROM customer.transaction_pending tp 
-                    JOIN bank.loan l ON l.loan_id = tp.pending_loanid 
-                    JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id 
+                    JOIN customer.loan l ON l.loan_id = tp.pending_loanid 
+                    JOIN customer.loan_type lt ON l.loan_type = lt.loantype_id 
                     WHERE tp.pending_transactionid = tran_id 
                 )+1)
                 
@@ -574,7 +572,7 @@ BEGIN
                 WHERE loan_id = tr.pending_loanid; 
 
                 UPDATE customer.account
-                SET account_balance = account_balance + (SELECT loantype_amount FROM bank.loan_type lt JOIN bank.loan l ON l.loan_type = lt.loantype_id WHERE l.loan_id = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id))
+                SET account_balance = account_balance + (SELECT loantype_amount FROM customer.loan_type lt JOIN customer.loan l ON l.loan_type = lt.loantype_id WHERE l.loan_id = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id))
                 WHERE account_loan = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id);
 
             END IF;
@@ -642,10 +640,7 @@ GRANT USAGE ON SCHEMA customer TO role_customer;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA customer TO role_customer;
 GRANT SELECT ON ALL TABLES IN SCHEMA customer TO role_customer;
 
-GRANT USAGE ON SCHEMA bank TO role_customer;
-GRANT SELECT ON TABLE bank.account_type TO role_customer;
-GRANT SELECT ON TABLE bank.loan TO role_customer;
-GRANT SELECT ON TABLE bank.loan_type TO role_customer;
+REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA bank FROM role_customer;
 
 GRANT role_customer TO user_customer1;
 
@@ -677,15 +672,10 @@ GRANT INSERT ON TABLE customer.transaction TO role_manager;
 GRANT UPDATE ON TABLE customer.transfer TO role_manager;
 GRANT UPDATE ON TABLE customer.payment TO role_manager;
 GRANT UPDATE ON TABLE customer.account TO role_manager;
+GRANT SELECT ON TABLE customer.loan_type TO role_manager;
+GRANT SELECT, UPDATE ON TABLE customer.loan TO role_manager;
 
 GRANT USAGE, SELECT ON SEQUENCE customer.transaction_transaction_id_seq TO role_manager;
-
-
-GRANT SELECT, UPDATE ON TABLE bank.loan TO role_manager;
-GRANT SELECT ON TABLE bank.loan_type TO role_manager;
-
-GRANT USAGE ON SCHEMA bank TO role_manager;
-
 
 GRANT role_manager TO user_manager1;
 GRANT role_employee TO user_manager1;
