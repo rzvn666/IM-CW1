@@ -1,5 +1,5 @@
 #!/bin/bash
-version='psql --version | rev | cut -c -4 | rev | cut -c -2'
+version='psql --version | cut -c 19-20'
 if $version; then
     go=$(eval "$version")
     foo='/etc/postgresql-'$go/
