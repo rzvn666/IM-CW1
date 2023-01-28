@@ -189,27 +189,32 @@ BEGIN
   FROM customer.customer 
   WHERE customer_id = id;
 
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    RAISE EXCEPTION 'Customer % not found', id;
+-- if the customer does not exist
+    IF NOT EXISTS (SELECT 1 FROM customer.customer WHERE customer_id=id) THEN
+        RAISE EXCEPTION 'Customer does not exist';
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
 -- customer can see their bank account details
 CREATE OR REPLACE FUNCTION customer.check_accounts(id int)
-RETURNS TABLE (account_number char(8), sort_code char(6), type varchar(100), loan int, balance int, name varchar(255), iban varchar(34), open_date date) AS $$
+RETURNS TABLE (account_number char(8), sort_code char(6), type varchar(100), loan int, 
+balance int, name varchar(255), iban varchar(34), open_date date) AS $$
 BEGIN
   -- returns bank account details
   RETURN QUERY 
-  SELECT a.account_number, a.account_sortcode, at.type_name, a.account_loan, a.account_balance, a.account_name, a.account_iban, a.account_opendate
+  SELECT a.account_number, a.account_sortcode, at.type_name, a.account_loan, 
+  a.account_balance, a.account_name, a.account_iban, a.account_opendate
+  
   FROM customer.account a
   JOIN bank.account_type at ON a.account_type = at.type_id
   WHERE a.account_customerid = id;
 
 -- if the customer does not exist
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    RAISE EXCEPTION 'Customer % not found', id;
+    IF NOT EXISTS (SELECT 1 FROM customer.customer WHERE customer_id=id) THEN
+        RAISE EXCEPTION 'Customer does not exist';
+    END IF;
+
 END;
 $$ LANGUAGE plpgsql;
 
@@ -229,7 +234,7 @@ BEGIN
 
 -- if the customer does not exist
     IF NOT EXISTS (SELECT 1 FROM customer.customer WHERE customer_id=id) THEN
-        RAISE EXCEPTION 'Customer % not found', id;
+        RAISE EXCEPTION 'Customer does not exist';
     END IF;
 END;
 $$ LANGUAGE plpgsql;
@@ -301,20 +306,23 @@ $$ LANGUAGE plpgsql;
 
 -- checking an employee details
 CREATE OR REPLACE FUNCTION employee.check_employee(id int)
-RETURNS TABLE (branch varchar(50), role varchar(255), first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
+RETURNS TABLE (branch varchar(50), role varchar(255), first_name varchar(50), last_name varchar(50), 
+mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
 BEGIN
   -- returns employee details
   RETURN QUERY 
-  SELECT br.branch_name, er.employeerole_name, e.employee_fname, e.employee_lname, e.employee_mobile, e.employee_email, e.employee_address, e.employee_postcode
+  SELECT br.branch_name, er.employeerole_name, e.employee_fname, e.employee_lname, e.employee_mobile, 
+  e.employee_email, e.employee_address, e.employee_postcode
+  
   FROM employee.employee e
   JOIN employee.employee_roles er ON e.employee_role = er.employeerole_id
   JOIN bank.branch br ON e.employee_sortcode = br.branch_sortcode
   WHERE e.employee_id = id;
 
--- if the customer does not exist
-EXCEPTION
-  WHEN NO_DATA_FOUND THEN
-    RAISE EXCEPTION 'Employee % not found', id;
+-- if the employee does not exist
+    IF NOT EXISTS (SELECT 1 FROM employee.employee WHERE employee_id=id) THEN
+        RAISE EXCEPTION 'Employee does not exist';
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
