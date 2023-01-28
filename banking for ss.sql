@@ -142,14 +142,24 @@ CREATE TABLE customer.transaction (
 -- #################################### all functions and procedures ####################################
 
 -- customer can open an account
-CREATE OR REPLACE FUNCTION bank.create_customer(param_uname varchar(30), param_pass varchar(30), param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
-RETURNS TABLE (username varchar(30), first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
+CREATE OR REPLACE FUNCTION bank.create_customer(param_uname varchar(30), param_pass varchar(30), 
+param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), 
+param_address varchar(255), param_postcode varchar(10))
+
+RETURNS TABLE (username varchar(30), first_name varchar(50), last_name varchar(50), mobile char(11), 
+email varchar(50), address varchar(255), postcode varchar(10)) AS $$
+
 BEGIN
-    INSERT INTO customer.customer (customer_id, customer_username, customer_password, customer_fname, customer_lname, customer_mobile, customer_email, customer_address, customer_postcode)
-    VALUES(nextval('customer.customer_customer_id_seq'),param_uname, param_pass, param_fname, param_lname, param_mobile, param_email, param_address, param_postcode);
+    INSERT INTO customer.customer (customer_id, customer_username, customer_password, customer_fname, 
+    customer_lname, customer_mobile, customer_email, customer_address, customer_postcode)
+
+    VALUES(nextval('customer.customer_customer_id_seq'),param_uname, param_pass, param_fname, 
+    param_lname, param_mobile, param_email, param_address, param_postcode);
 
   RETURN QUERY 
-  SELECT customer_username, customer_fname, customer_lname, customer_mobile, customer_email, customer_address, customer_postcode
+  SELECT customer_username, customer_fname, customer_lname, customer_mobile, customer_email, 
+  customer_address, customer_postcode
+
   FROM customer.customer 
   WHERE customer_id = currval('customer.customer_customer_id_seq');
 
@@ -158,20 +168,29 @@ $$ LANGUAGE plpgsql;
 
 
 -- existing customer can open another account and new customers can open account first account
-CREATE OR REPLACE FUNCTION bank.create_account(param_username varchar(30), param_accountnum char(8), param_sortcode char(6), param_accountype int, param_accountname varchar(255))
-RETURNS TABLE(first_name varchar(50), last_name varchar(50), acc_number char(8), sort_code char(6), type int, balance int, name varchar(255), iban varchar(34), date date) AS $$
+CREATE OR REPLACE FUNCTION bank.create_account(param_username varchar(30), 
+param_accountnum char(8), param_sortcode char(6), param_accountype int, param_accountname varchar(255))
+
+RETURNS TABLE(first_name varchar(50), last_name varchar(50), acc_number char(8), 
+sort_code char(6), type int, balance int, name varchar(255), iban varchar(34), date date) AS $$
 BEGIN
     
     DECLARE 
         param_iban VARCHAR(50);
     BEGIN 
         param_iban := 'GB73LOYD' || param_sortcode || param_accountnum;
-    EXECUTE 'INSERT INTO customer.account(account_number, account_sortcode, account_customerid, account_type, account_balance, account_name, account_iban, account_opendate) VALUES ($1, $2, $3, $4, 3000, $5, '''|| format(param_iban) ||''', NOW())'
-    USING param_accountnum, param_sortcode, (select customer_id from customer.customer where customer_username = param_username), param_accountype, param_accountname, param_iban;
+    EXECUTE 'INSERT INTO customer.account(account_number, account_sortcode, account_customerid, 
+    account_type, account_balance, account_name, account_iban, account_opendate) 
+    VALUES ($1, $2, $3, $4, 3000, $5, '''|| format(param_iban) ||''', NOW())'
+
+    USING param_accountnum, param_sortcode, (select customer_id from customer.customer 
+    where customer_username = param_username), param_accountype, param_accountname, param_iban;
     END;
 
     RETURN QUERY
-    SELECT c.customer_fname, c.customer_lname, a.account_number, a.account_sortcode, a.account_type, a.account_balance, a.account_name, a.account_iban,a. account_opendate
+    SELECT c.customer_fname, c.customer_lname, a.account_number, a.account_sortcode, a.account_type, 
+    a.account_balance, a.account_name, a.account_iban,a. account_opendate
+    
     FROM customer.account a
     JOIN customer.customer c ON a.account_customerid = c.customer_id
     WHERE account_number = param_accountnum;
@@ -179,13 +198,17 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+
 -- customer can check their details
 CREATE OR REPLACE FUNCTION customer.check_customer(id int)
-RETURNS TABLE (first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
+RETURNS TABLE (first_name varchar(50), last_name varchar(50), mobile char(11), 
+email varchar(50), address varchar(255), postcode varchar(10)) AS $$
 BEGIN
   -- return customer details for the table
   RETURN QUERY 
-  SELECT customer_fname, customer_lname, customer_mobile, customer_email, customer_address, customer_postcode
+  SELECT customer_fname, customer_lname, customer_mobile, customer_email, 
+  customer_address, customer_postcode
+
   FROM customer.customer 
   WHERE customer_id = id;
 
@@ -195,13 +218,17 @@ EXCEPTION
 END;
 $$ LANGUAGE plpgsql;
 
+
 -- customer can see their bank account details
 CREATE OR REPLACE FUNCTION customer.check_accounts(id int)
-RETURNS TABLE (account_number char(8), sort_code char(6), type varchar(100), loan int, balance int, name varchar(255), iban varchar(34), open_date date) AS $$
+RETURNS TABLE (account_number char(8), sort_code char(6), type varchar(100), loan int, 
+balance int, name varchar(255), iban varchar(34), open_date date) AS $$
 BEGIN
   -- returns bank account details
   RETURN QUERY 
-  SELECT a.account_number, a.account_sortcode, at.type_name, a.account_loan, a.account_balance, a.account_name, a.account_iban, a.account_opendate
+  SELECT a.account_number, a.account_sortcode, at.type_name, a.account_loan, 
+  a.account_balance, a.account_name, a.account_iban, a.account_opendate
+
   FROM customer.account a
   JOIN bank.account_type at ON a.account_type = at.type_id
   WHERE a.account_customerid = id;
@@ -218,7 +245,8 @@ $$ LANGUAGE plpgsql;
 
 -- customer can see their balance function
 CREATE OR REPLACE FUNCTION customer.check_balances(id int)
-RETURNS TABLE (account_number char(8), account_name varchar(255), account_type varchar(100), account_balance int) AS $$
+RETURNS TABLE (account_number char(8), account_name varchar(255), account_type varchar(100), 
+account_balance int) AS $$
 BEGIN
   -- check if the customer exists
   RETURN QUERY 
@@ -237,12 +265,14 @@ $$ LANGUAGE plpgsql;
 
 -- check transfers
 CREATE OR REPLACE FUNCTION customer.check_transfers(IN c_id int)
-RETURNS TABLE(transaction_id int, transaction_ref varchar(255), transfer_id int, account_number char(8), receiver_accnum char(8), amount int, status varchar(50), date DATE)
-AS $$
+RETURNS TABLE(transaction_id int, transaction_ref varchar(255), transfer_id int, 
+account_number char(8), receiver_accnum char(8), amount int, status varchar(50), date DATE) AS $$
 #variable_conflict use_column
 BEGIN
     RETURN QUERY 
-    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_transferid, tr.transfer_senderaccnum, tr.transfer_receiveraccnum, tr.transfer_amount, tr.transfer_status, tr.transfer_date
+    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_transferid, tr.transfer_senderaccnum, 
+    tr.transfer_receiveraccnum, tr.transfer_amount, tr.transfer_status, tr.transfer_date
+
     FROM customer.transaction_pending t
     JOIN customer.transfer tr ON t.pending_transferid = tr.transfer_id
     WHERE tr.transfer_senderaccnum IN (SELECT account_number FROM customer.account WHERE account_customerid = c_id);
@@ -251,11 +281,16 @@ $$ LANGUAGE plpgsql;
 
 -- check payments
 CREATE OR REPLACE FUNCTION customer.check_payments(IN c_id int)
-RETURNS TABLE(transaction_id int, transaction_ref varchar(255), payment_id int, account_number char(8), receiver_accnum char(8), receiver_sortcode char(6), payment_receivername varchar(255), amount int, status varchar(50), date DATE) AS $$
+RETURNS TABLE(transaction_id int, transaction_ref varchar(255), payment_id int, account_number char(8), 
+receiver_accnum char(8), receiver_sortcode char(6), payment_receivername varchar(255), amount int, 
+status varchar(50), date DATE) AS $$
 #variable_conflict use_column
 BEGIN
     RETURN QUERY 
-    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_paymentid, p.payment_accountnum, p.payment_receiveraccnum, p.payment_receiversortcode, p.payment_receivername, p.payment_amount, p.payment_status, p.payment_date
+    SELECT t.pending_transactionid, t.pending_transactionref, t.pending_paymentid, p.payment_accountnum, 
+    p.payment_receiveraccnum, p.payment_receiversortcode, p.payment_receivername, p.payment_amount, 
+    p.payment_status, p.payment_date
+
     FROM customer.transaction_pending t
     JOIN customer.payment p ON t.pending_paymentid = p.payment_id
     WHERE p.payment_accountnum IN (SELECT account_number FROM customer.account WHERE account_customerid = c_id);
@@ -265,10 +300,13 @@ $$ LANGUAGE plpgsql;
 
 -- check loan
 CREATE OR REPLACE FUNCTION customer.check_loans(IN c_id int)
-RETURNS TABLE(transaction int, loan_id int, account_number char(8), amount int, outstanding_balance int, interest real, term int, status varchar(50) ,date date) AS $$
+RETURNS TABLE(transaction int, loan_id int, account_number char(8), amount int,
+outstanding_balance int, interest real, term int, status varchar(50) ,date date) AS $$
 BEGIN
     RETURN QUERY 
-    SELECT tp.pending_transactionid, l.loan_id, a.account_number, lt.loantype_amount, l.loan_outstanding, lt.loantype_interest, lt.loantype_term, l.loan_status ,l.loan_date
+    SELECT tp.pending_transactionid, l.loan_id, a.account_number, lt.loantype_amount, 
+    l.loan_outstanding, lt.loantype_interest, lt.loantype_term, l.loan_status ,l.loan_date
+    
     FROM customer.account a
     JOIN bank.loan l ON a.account_loan = l.loan_id
     JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id
@@ -283,14 +321,23 @@ $$ LANGUAGE plpgsql;
 
 
 -- create a new employee
-CREATE OR REPLACE FUNCTION bank.create_employee(param_sortcode char(6), param_uname varchar(255), param_pass varchar(255), param_role int, param_fname varchar(50), param_lname varchar(50), param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
-RETURNS TABLE(branch varchar(50), role varchar(255), first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
+CREATE OR REPLACE FUNCTION bank.create_employee(param_sortcode char(6), param_uname varchar(255), 
+param_pass varchar(255), param_role int, param_fname varchar(50), param_lname varchar(50), 
+param_mobile char(11), param_email varchar(50), param_address varchar(255), param_postcode varchar(10))
+
+RETURNS TABLE(branch varchar(50), role varchar(255), first_name varchar(50), last_name varchar(50), 
+mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
 BEGIN
-    INSERT INTO employee.employee (employee_id, employee_sortcode, employee_username, employee_password, employee_role, employee_fname, employee_lname, employee_mobile, employee_email, employee_address, employee_postcode)
-    VALUES(nextval('employee.employee_employee_id_seq'), param_sortcode, param_uname, param_pass, param_role, param_fname, param_lname, param_mobile, param_email, param_address, param_postcode);
+    INSERT INTO employee.employee (employee_id, employee_sortcode, employee_username, employee_password, 
+    employee_role, employee_fname, employee_lname, employee_mobile, employee_email, employee_address,
+    employee_postcode)
+    VALUES(nextval('employee.employee_employee_id_seq'), param_sortcode, param_uname, param_pass, 
+    param_role, param_fname, param_lname, param_mobile, param_email, param_address, param_postcode);
     
     RETURN QUERY 
-    SELECT br.branch_name, er.employeerole_name, e.employee_fname, e.employee_lname, e.employee_mobile, e.employee_email, e.employee_address, e.employee_postcode
+    SELECT br.branch_name, er.employeerole_name, e.employee_fname, e.employee_lname, e.employee_mobile, 
+    e.employee_email, e.employee_address, e.employee_postcode
+    
     FROM employee.employee e
     JOIN employee.employee_roles er ON e.employee_role = er.employeerole_id
     JOIN bank.branch br ON e.employee_sortcode = br.branch_sortcode
@@ -301,11 +348,15 @@ $$ LANGUAGE plpgsql;
 
 -- checking an employee details
 CREATE OR REPLACE FUNCTION employee.check_employee(id int)
-RETURNS TABLE (branch varchar(50), role varchar(255), first_name varchar(50), last_name varchar(50), mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
+RETURNS TABLE (branch varchar(50), role varchar(255), first_name varchar(50), last_name varchar(50), 
+mobile char(11), email varchar(50), address varchar(255), postcode varchar(10)) AS $$
+
 BEGIN
   -- returns employee details
   RETURN QUERY 
-  SELECT br.branch_name, er.employeerole_name, e.employee_fname, e.employee_lname, e.employee_mobile, e.employee_email, e.employee_address, e.employee_postcode
+  SELECT br.branch_name, er.employeerole_name, e.employee_fname, e.employee_lname, e.employee_mobile, 
+  e.employee_email, e.employee_address, e.employee_postcode
+
   FROM employee.employee e
   JOIN employee.employee_roles er ON e.employee_role = er.employeerole_id
   JOIN bank.branch br ON e.employee_sortcode = br.branch_sortcode
@@ -320,11 +371,10 @@ $$ LANGUAGE plpgsql;
 
 
 -- apply for loan
-CREATE OR REPLACE FUNCTION bank.apply_loan(
-    param_accountnum char(8),
-    param_loantype int
-)
-RETURNS TABLE (id_loan int, type_loan int, status_loan varchar(50), date_loan date, id_loantype int, amount_loantype int, interest_loantype real, term_loantype int ) AS $$
+CREATE OR REPLACE FUNCTION bank.apply_loan(param_accountnum char(8), param_loantype int)
+RETURNS TABLE (id_loan int, type_loan int, status_loan varchar(50), date_loan date, 
+id_loantype int, amount_loantype int, interest_loantype real, term_loantype int ) AS $$
+
 BEGIN
     IF EXISTS (SELECT 1 FROM customer.account WHERE account_number = param_accountnum) THEN
         -- insert transfer into bank.loan table
@@ -337,15 +387,19 @@ BEGIN
         WHERE account_number = param_accountnum;
 
         -- insert transfer into customer.transaction_pending table
-        INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_loanid)
-        VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'LOAN', true, false, currval('bank.loan_loan_id_seq'));
+        INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, 
+        pending_sensitiveflag, pending_approvalflag, pending_loanid)
+        VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'LOAN', true, 
+        false, currval('bank.loan_loan_id_seq'));
 
     ELSE
         RAISE EXCEPTION 'Account does not exist';        
     END IF;
     
     RETURN QUERY
-    SELECT l.loan_id, l.loan_type, l.loan_status, l.loan_date, lt.loantype_id, lt.loantype_amount, lt.loantype_interest, lt.loantype_term
+    SELECT l.loan_id, l.loan_type, l.loan_status, l.loan_date, lt.loantype_id, lt.loantype_amount, 
+    lt.loantype_interest, lt.loantype_term
+
     FROM bank.loan l
     JOIN bank.loan_type lt ON l.loan_type = lt.loantype_id
     WHERE loan_id = currval('bank.loan_loan_id_seq');
@@ -354,14 +408,12 @@ $$ LANGUAGE plpgsql;
 
 
 -- make a payment
-CREATE OR REPLACE FUNCTION bank.make_payment(
-    sender_accnum char(8),
-    receiver_accnum char(8),
-    receiver_sortcode char(6),
-    receiver_name varchar(255),
-    amount int
-)
-RETURNS TABLE (pay_id int, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), pay_receivername varchar(255), pay_amount int, pay_status varchar(50), pay_date DATE) AS $$
+CREATE OR REPLACE FUNCTION bank.make_payment(sender_accnum char(8), receiver_accnum char(8), 
+receiver_sortcode char(6), receiver_name varchar(255), amount int)
+
+RETURNS TABLE (pay_id int, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), 
+pay_receivername varchar(255), pay_amount int, pay_status varchar(50), pay_date DATE) AS $$
+
 BEGIN
     IF amount <= 0 THEN
         RAISE EXCEPTION 'Cannot pay negative amount of money';
@@ -381,15 +433,21 @@ BEGIN
     UPDATE customer.account SET account_balance = account_balance - amount WHERE account_number = sender_accnum;
 
     -- insert payment into customer.payment table
-    INSERT INTO customer.payment (payment_id, payment_accountnum, payment_receiveraccnum, payment_receiversortcode, payment_receivername, payment_amount, payment_status, payment_date)
-    VALUES (nextval('customer.payment_payment_id_seq'), sender_accnum, receiver_accnum, receiver_sortcode, receiver_name, amount, 'COMPLETE', NOW());
+    INSERT INTO customer.payment (payment_id, payment_accountnum, payment_receiveraccnum, payment_receiversortcode, 
+    payment_receivername, payment_amount, payment_status, payment_date)
+
+    VALUES (nextval('customer.payment_payment_id_seq'), sender_accnum, receiver_accnum, receiver_sortcode, 
+    receiver_name, amount, 'COMPLETE', NOW());
 
     -- insert payment into customer.transaction_pending table
-    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_paymentid)
-    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'PAYMENT', false, true, currval('customer.payment_payment_id_seq'));
+    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag,
+    pending_approvalflag, pending_paymentid)
+    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'PAYMENT', false, true, 
+    currval('customer.payment_payment_id_seq'));
 
     INSERT INTO customer.transaction(transaction_id, transaction_complete)
-    VALUES(nextval('customer.transaction_transaction_id_seq'), currval('customer.transaction_pending_pending_transactionid_seq'));
+    VALUES(nextval('customer.transaction_transaction_id_seq'), 
+    currval('customer.transaction_pending_pending_transactionid_seq'));
 
     RETURN QUERY
     SELECT *
@@ -401,50 +459,53 @@ $$ LANGUAGE plpgsql;
 
 -- make a loan payment
 CREATE OR REPLACE FUNCTION bank.pay_loan(param_accnum char(8), param_amount int)
-RETURNS TABLE (pay_id int, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), pay_receivername varchar(255), pay_amount int, pay_status varchar(50), pay_date DATE) AS $$
+RETURNS TABLE (pay_id int, pay_account char(8), pay_receiveracc char(8), pay_receiversort char(6), 
+pay_receivername varchar(255), pay_amount int, pay_status varchar(50), pay_date DATE) AS $$
+
 BEGIN
     IF param_amount <= 0 THEN
         RAISE EXCEPTION 'Cannot pay negative amount of money.';
     END IF;
-
     -- check if sender account exists
     IF NOT EXISTS (SELECT 1 FROM customer.account WHERE account_number = param_accnum) THEN
         RAISE EXCEPTION 'Account does not exist.';
     END IF;
-
     -- check if sender has sufficient funds
     IF (SELECT account_balance FROM customer.account WHERE account_number = param_accnum) < param_amount THEN
         RAISE EXCEPTION 'Insufficient funds in account.';
     END IF;
-
     -- check if sender has sufficient funds
-    IF (SELECT loan_outstanding FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan WHERE account_number = param_accnum) < param_amount THEN
+    IF (SELECT loan_outstanding FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan
+    WHERE account_number = param_accnum) < param_amount THEN
         RAISE EXCEPTION 'You cannot pay more that the outstanding balance.';
     END IF;
-
     -- check if sender has a loan to pay back
     IF EXISTS (SELECT 1 FROM customer.account WHERE account_number = param_accnum AND account_loan IS NULL) THEN
         RAISE EXCEPTION 'No loan to pay back.';
     END IF;
-
     -- check if the loan is pending
-    IF (SELECT loan_status FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan WHERE account_number = param_accnum) = 'PENDING' THEN
+    IF (SELECT loan_status FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan 
+    WHERE account_number = param_accnum) = 'PENDING' THEN
         RAISE EXCEPTION 'Loan is pending. You cannot pay back now.';
     END IF;
-
     -- update account balance
     UPDATE customer.account SET account_balance = account_balance - param_amount WHERE account_number = param_accnum;
-    
     -- update loan outstanding balance
-    UPDATE bank.loan l SET loan_outstanding = loan_outstanding - param_amount FROM customer.account a WHERE l.loan_id = a.account_loan AND a.account_number = param_accnum;
+    UPDATE bank.loan l SET loan_outstanding = loan_outstanding - param_amount FROM customer.account a
+    WHERE l.loan_id = a.account_loan AND a.account_number = param_accnum;
 
     -- insert payment into customer.payment table
-    INSERT INTO customer.payment (payment_id, payment_accountnum, payment_receiveraccnum, payment_receiversortcode, payment_receivername, payment_amount, payment_status, payment_date)
-    VALUES (nextval('customer.payment_payment_id_seq'), param_accnum, '00000000', '000000', 'LOAN PAYMENT', param_amount, 'COMPLETE', NOW());
+    INSERT INTO customer.payment (payment_id, payment_accountnum, payment_receiveraccnum, payment_receiversortcode, 
+    payment_receivername, payment_amount, payment_status, payment_date)
+    VALUES (nextval('customer.payment_payment_id_seq'), param_accnum, '00000000', '000000', 'LOAN PAYMENT', 
+    param_amount, 'COMPLETE', NOW());
 
     -- insert payment into customer.transaction_pending table
-    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_paymentid)
-    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'LOAN PAYMENT', false, true, currval('customer.payment_payment_id_seq'));
+    INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, 
+    pending_approvalflag, pending_paymentid)
+
+    VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'LOAN PAYMENT', false, true, 
+    currval('customer.payment_payment_id_seq'));
 
     INSERT INTO customer.transaction(transaction_id, transaction_complete)
     VALUES(nextval('customer.transaction_transaction_id_seq'), currval('customer.transaction_pending_pending_transactionid_seq'));
@@ -453,20 +514,17 @@ BEGIN
     SELECT *
     FROM customer.payment p
     WHERE p.payment_id = currval('customer.payment_payment_id_seq');
-
 END;
 $$ LANGUAGE plpgsql;
 
 
 -- make a transfer
-CREATE OR REPLACE FUNCTION bank.make_transfer(
-    sender_accnum char(8),
-    receiver_accnum char(8),
-    amount int
-)
-RETURNS TABLE (tran_id int, tran_senderacc char(8), tran_receiveracc char(8), tran_amount int, tran_status varchar(50), tran_date date) AS $$
+CREATE OR REPLACE FUNCTION bank.make_transfer(sender_accnum char(8), receiver_accnum char(8), amount int)
+RETURNS TABLE (tran_id int, tran_senderacc char(8), tran_receiveracc char(8), tran_amount int, 
+tran_status varchar(50), tran_date date) AS $$
 BEGIN
-    IF ((SELECT account_customerid FROM customer.account WHERE account_number = sender_accnum) = (SELECT account_customerid FROM customer.account WHERE account_number = receiver_accnum)) THEN
+    IF ((SELECT account_customerid FROM customer.account WHERE account_number = sender_accnum) = 
+    (SELECT account_customerid FROM customer.account WHERE account_number = receiver_accnum)) THEN
         IF amount <= 0 THEN
             RAISE EXCEPTION 'Cannot transfer negative amount of money.';
         END IF;
@@ -493,12 +551,15 @@ BEGIN
         UPDATE customer.account SET account_balance = account_balance + amount WHERE account_number = receiver_accnum;
 
         -- insert transfer into customer.transfer table
-        INSERT INTO customer.transfer (transfer_id, transfer_senderaccnum, transfer_receiveraccnum, transfer_amount, transfer_status, transfer_date)
+        INSERT INTO customer.transfer (transfer_id, transfer_senderaccnum, transfer_receiveraccnum, transfer_amount, 
+        transfer_status, transfer_date)
         VALUES (nextval('customer.transfer_transfer_id_seq'), sender_accnum, receiver_accnum, amount, 'COMPLETE', NOW());
 
         -- insert transfer into customer.transaction_pending table
-        INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, pending_approvalflag, pending_transferid)
-        VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'TRANSFER', false, true, currval('customer.transfer_transfer_id_seq'));
+        INSERT INTO customer.transaction_pending (pending_transactionid, pending_transactionref, pending_sensitiveflag, 
+        pending_approvalflag, pending_transferid)
+        VALUES (nextval('customer.transaction_pending_pending_transactionid_seq'), 'TRANSFER', false, true, 
+        currval('customer.transfer_transfer_id_seq'));
 
         INSERT INTO customer.transaction(transaction_id, transaction_complete)
         VALUES(nextval('customer.transaction_transaction_id_seq'), currval('customer.transaction_pending_pending_transactionid_seq'));
@@ -519,28 +580,33 @@ $$ LANGUAGE plpgsql;
 CREATE OR REPLACE FUNCTION manager.approve_pending(param_employee int, tran_id int)
 RETURNS TABLE(appr_id int, appr_employee int, appr_date date, appr_tran int) AS $$
 BEGIN
-    IF (SELECT er.employeerole_name FROM employee.employee e JOIN employee.employee_roles er ON e.employee_role = er.employeerole_id WHERE e.employee_id = param_employee) = 'Manager' THEN
+    IF (SELECT er.employeerole_name FROM employee.employee e JOIN employee.employee_roles er 
+    ON e.employee_role = er.employeerole_id WHERE e.employee_id = param_employee) = 'Manager' THEN
         -- Update pending transactions with sensitive flag set to true if sensitive flag is set to true
-        IF EXISTS (SELECT * FROM customer.transaction_pending WHERE pending_sensitiveflag = true AND pending_approvalflag = false AND pending_transactionid = tran_id) THEN
+        IF EXISTS (SELECT * FROM customer.transaction_pending WHERE pending_sensitiveflag = true 
+        AND pending_approvalflag = false AND pending_transactionid = tran_id) THEN
             UPDATE customer.transaction_pending
             SET pending_approvalflag = true
             WHERE pending_sensitiveflag = true AND pending_transactionid = tran_id;
 
-            IF EXISTS (SELECT pending_transferid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+            IF EXISTS (SELECT pending_transferid FROM customer.transaction_pending 
+            WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
                 UPDATE customer.transfer t
                 SET transfer_status = 'COMPLETE'
                 FROM customer.transaction_pending tr
                 WHERE t.transfer_id = tr.pending_transferid;
             END IF;
 
-            IF EXISTS (SELECT pending_paymentid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+            IF EXISTS (SELECT pending_paymentid FROM customer.transaction_pending 
+            WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
                 UPDATE customer.payment p
                 SET payment_status = 'COMPLETE'
                 FROM customer.transaction_pending tr
                 WHERE p.payment_id = tr.pending_paymentid;
             END IF;
 
-            IF EXISTS (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
+            IF EXISTS (SELECT pending_loanid FROM customer.transaction_pending 
+            WHERE pending_approvalflag = true AND pending_transactionid = tran_id) THEN
                 UPDATE bank.loan l
                 SET loan_status = 'ACTIVE'
                 FROM customer.transaction_pending tr
@@ -566,8 +632,14 @@ BEGIN
                 WHERE loan_id = tr.pending_loanid; 
 
                 UPDATE customer.account
-                SET account_balance = account_balance + (SELECT loantype_amount FROM bank.loan_type lt JOIN bank.loan l ON l.loan_type = lt.loantype_id WHERE l.loan_id = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id))
-                WHERE account_loan = (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag = true AND pending_transactionid = tran_id);
+                SET account_balance = account_balance + (SELECT loantype_amount FROM bank.loan_type lt
+
+                JOIN bank.loan l ON l.loan_type = lt.loantype_id WHERE l.loan_id = 
+                (SELECT pending_loanid FROM customer.transaction_pending WHERE pending_approvalflag 
+                = true AND pending_transactionid = tran_id))
+
+                WHERE account_loan = (SELECT pending_loanid FROM customer.transaction_pending 
+                WHERE pending_approvalflag = true AND pending_transactionid = tran_id);
 
             END IF;
             
@@ -579,7 +651,8 @@ BEGIN
             INSERT INTO customer.transaction(transaction_id, transaction_complete)
             VALUES(nextval('customer.transaction_transaction_id_seq'), tran_id);
 
-        ELSIF EXISTS (SELECT * FROM customer.transaction_pending WHERE (pending_sensitiveflag = false OR pending_approvalflag = true) AND pending_transactionid = tran_id) THEN
+        ELSIF EXISTS (SELECT * FROM customer.transaction_pending WHERE (pending_sensitiveflag = false 
+        OR pending_approvalflag = true) AND pending_transactionid = tran_id) THEN
             RAISE EXCEPTION 'Transaction is not sensitive or does not need approval.';
 
         ELSE

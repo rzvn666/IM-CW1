@@ -102,12 +102,13 @@ psql -c "INSERT INTO employee.employee (employee_id, employee_sortcode, employee
 "
 
 
+
 # @@@@@@@@@@@@@@@@@@@@@@@@@ starting to test all procedures @@@@@@@@@@@@@@@@@@@@@@@@@
 
 export PGUSER=user_bank1
 export PGPASSWORD=test
 
-# @@@@@@@@@@@@@@@@@@@@@@@@@ customer creation journey @@@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@ customer creation journey and applying for a loan @@@@@@@@@@@@@@@@@@@@@@@@@
 
 echo && echo "
 @@@@@@@@@@@@@@@@@@@@@@@@@ 
@@ -266,7 +267,7 @@ echo
 psql -c "select * from customer.check_loans(3)"
 
 
-# @@@@@@@@@@@@@@@@ customer paying their loan back @@@@@@@@@@@@@@@@@@@@@@@@@
+# @@@@@@@@@@@@@@@@@@@@@@@@@ customer paying their loan back @@@@@@@@@@@@@@@@@@@@@@@@@
 
 
 export PGUSER=user_bank1
@@ -284,6 +285,8 @@ customer paying their loan back
 echo
 
 psql -c "select * from bank.pay_loan('68324767',500)"
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@ customer making a payment to an external bank then checking payments @@@@@@@@@@@@@@@@@@@@@@@@@
 
 
 echo && echo "
@@ -307,9 +310,12 @@ echo
 
 psql -c "select * from customer.check_payments(3)"
 
+
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@ customer making a transfer between their own accounts then checking transfers and balances @@@@@@@@@@@@@@@@@@@@@@@@@
+
 export PGUSER=user_bank1
 export PGPASSWORD=test
-
 
 echo && echo "
 @@@@@@@@@@@@@@@@@@@@@@@@@ 
@@ -340,6 +346,10 @@ echo
 
 psql -c "select * from customer.check_balances(3)"
 
+
+# @@@@@@@@@@@@@@@@@@@@@@@@@ testing erroneous data and unwanted shchema access @@@@@@@@@@@@@@@@@@@@@@@@@
+
+
 echo && echo "
 @@@@@@@@@@@@@@@@@@@@@@@@@
 testing schema access
@@ -351,7 +361,6 @@ echo && echo "
 customer accessing different schemas other than the \"customers\" one
 @@@@@@@@@@@@@@@@@@@@@@@@@"
 echo
-
 
 
 psql -c "select * from customer.check_balances(7)"
