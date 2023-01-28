@@ -4,7 +4,7 @@ version='psql --version | cut -c 19-20'
 if which systemctl; then 
     if $version; then
         go=$(eval "$version")
-        foo='/etc/postgresql/'$go'/main/'
+        foo='/etc/postgresql/'$go'/main/conf.d/'
         sudo cp config/* ${foo}
 
         echo "
