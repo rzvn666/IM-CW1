@@ -1,61 +1,104 @@
 #!/bin/bash
+
 version='psql --version | cut -c 19-20'
-if $version; then
-    go=$(eval "$version")
-    foo='/etc/postgresql-'$go/
-    sudo cp config/* ${foo}
+if which systemctl; then 
+    if $version; then
+        go=$(eval "$version")
+        foo='/etc/postgresql/'$go'/main/'
+        sudo cp config/* ${foo}
 
-    echo "
-    ##################################
-    CONFIG FILES MOVED SUCCESSFULLY
-    ##################################
-    "
-else
-    echo "
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    NO POSTGRESQL INSTALLED
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    "
-fi
+        echo "
+        ##################################
+        CONFIG FILES MOVED SUCCESSFULLY
+        ##################################
+        "
+    else
+        echo "
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        NO POSTGRESQL INSTALLED
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        "
+    fi
 
-if sudo chown postgres:postgres ${foo}/pg_hba.conf && sudo chown postgres:postgres ${foo}/postgresql.conf; then
+    if sudo chown postgres:postgres ${foo}/pg_hba.conf && sudo chown postgres:postgres ${foo}/postgresql.conf; then
+        echo "
+        ##################################
+        CONFIG FILES CHOWN SUCCESSFUL
+        ##################################
+        "
+    else
+        echo "
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        CONFIG FILES FAILED TO CHOWN
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        "
+    fi
+
+    if sudo systemctl restart postgresql; then
+        echo "
+        ##################################
+        SYSTEMCTL SUCCESSFUL RESTART
+        ##################################    
+        "
+    else 
+        echo "
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        NO SYSTEMCTL FOUND
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        "
+    fi
+
+elif which rc-service; then
+    if $version; then
+        go=$(eval "$version")
+        foo='/etc/postgresql-'$go/
+        sudo cp config/* ${foo}
+
+        echo "
+        ##################################
+        CONFIG FILES MOVED SUCCESSFULLY
+        ##################################
+        "
+    else
+        echo "
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        NO POSTGRESQL INSTALLED
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        "
+    fi
+
+    if sudo chown postgres:postgres ${foo}/pg_hba.conf && sudo chown postgres:postgres ${foo}/postgresql.conf; then
     echo "
     ##################################
     CONFIG FILES CHOWN SUCCESSFUL
     ##################################
     "
+    else
+        echo "
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        CONFIG FILES FAILED TO CHOWN
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        "
+    fi
+
+    if sudo rc-service postgresql-$go restart; then
+        echo "
+        ##################################
+        RC-SERVICE SUCCESSFUL RESTART
+        ##################################    
+        "
+    else 
+        echo "
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        NO RC-SERVICE FOUND
+        !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        "
+    fi
+
 else
     echo "
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    CONFIG FILES FAILED TO CHOWN
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    "
-fi
-
-if sudo systemctl restart postgresql; then
-    echo "
-    ##################################
-    SYSTEMCTL SUCCESSFUL RESTART
-    ##################################    
-    "
-else 
-    echo "
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    NO SYSTEMCTL FOUND
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    "
-fi
-
-if sudo rc-service postgresql-$go restart; then
-    echo "
-    ##################################
-    RC-SERVICE SUCCESSFUL RESTART
-    ##################################    
-    "
-else 
-    echo "
-    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    NO RC-SERVICE FOUND
+    ALL FAILED
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     "
 fi
