@@ -313,7 +313,7 @@ BEGIN
   RETURN QUERY 
   SELECT br.branch_name, er.employeerole_name, e.employee_fname, e.employee_lname, e.employee_mobile, 
   e.employee_email, e.employee_address, e.employee_postcode
-  
+
   FROM employee.employee e
   JOIN employee.employee_roles er ON e.employee_role = er.employeerole_id
   JOIN bank.branch br ON e.employee_sortcode = br.branch_sortcode
@@ -427,7 +427,7 @@ BEGIN
 
     -- check if sender has sufficient funds
     IF (SELECT loan_outstanding FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan WHERE account_number = param_accnum) < param_amount THEN
-        RAISE EXCEPTION 'You cannot pay more that the outstanding balance.';
+        RAISE EXCEPTION 'You cannot pay more than the outstanding balance.';
     END IF;
 
     -- check if sender has a loan to pay back

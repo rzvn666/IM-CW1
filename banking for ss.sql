@@ -477,7 +477,7 @@ BEGIN
     -- check if sender has sufficient funds
     IF (SELECT loan_outstanding FROM bank.loan l JOIN customer.account a ON l.loan_id = a.account_loan
     WHERE account_number = param_accnum) < param_amount THEN
-        RAISE EXCEPTION 'You cannot pay more that the outstanding balance.';
+        RAISE EXCEPTION 'You cannot pay more than the outstanding balance.';
     END IF;
     -- check if sender has a loan to pay back
     IF EXISTS (SELECT 1 FROM customer.account WHERE account_number = param_accnum AND account_loan IS NULL) THEN
