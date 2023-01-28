@@ -32,12 +32,30 @@ else
     "
 fi
 
-if systemctl; then
-    sudo systemctl restart postgresql
+if sudo systemctl restart postgresql; then
+    echo "
+    ##################################
+    SYSTEMCTL SUCCESSFUL RESTART
+    ##################################    
+    "
 else 
     echo "
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     NO SYSTEMCTL FOUND
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    "
+fi
+
+if sudo rc-service postgresql-$go restart; then
+    echo "
+    ##################################
+    RC-SERVICE SUCCESSFUL RESTART
+    ##################################    
+    "
+else 
+    echo "
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    NO RC-SERVICE FOUND
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     "
 fi
