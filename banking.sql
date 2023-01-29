@@ -640,8 +640,6 @@ GRANT USAGE ON SCHEMA customer TO role_customer;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA customer TO role_customer;
 GRANT SELECT ON ALL TABLES IN SCHEMA customer TO role_customer;
 
-REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA bank FROM role_customer;
-
 GRANT role_customer TO user_customer1;
 
 
