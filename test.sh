@@ -3,13 +3,12 @@
 
 sudo -su postgres psql -U postgres -c "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';"
 
-
 export PGHOST=localhost
 export PGPORT=5433
 export PGUSER=postgres
 export PGPASSWORD=postgres
 
-psql -c "DROP DATABASE banking";
+psql -c "DROP DATABASE IF EXISTS banking";
 psql -c "CREATE DATABASE banking";
 psql -U postgres -d banking < banking.sql;
 

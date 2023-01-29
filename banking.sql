@@ -1,12 +1,12 @@
-DROP ROLE role_bank;
-DROP ROLE role_employee;
-DROP ROLE role_manager;
-DROP ROLE role_customer;
+DROP ROLE IF EXISTS role_bank;
+DROP ROLE IF EXISTS role_employee;
+DROP ROLE IF EXISTS role_manager;
+DROP ROLE IF EXISTS role_customer;
 
-DROP ROLE user_bank1;
-DROP ROLE user_employee1;
-DROP ROLE user_manager1;
-DROP ROLE user_customer1;
+DROP ROLE IF EXISTS user_bank1;
+DROP ROLE IF EXISTS user_employee1;
+DROP ROLE IF EXISTS user_manager1;
+DROP ROLE IF EXISTS user_customer1;
 
 CREATE SCHEMA bank;
 CREATE SCHEMA employee;
