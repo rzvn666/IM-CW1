@@ -11,4 +11,8 @@ Before using the ./test.sh script:
 4. gedit your_folder/config/00-hba-changes.conf
 5. sudo gedit /etc/postgresql/your_version/main/pg_hba.conf
 
-6. Run the ./test.sh script in a full screen terminal
+6. You must then restart the POSTGRESQL service:
+
+7. sudo systemctl restart postgresql
+
+8. Run the ./test.sh script in a full screen terminal
