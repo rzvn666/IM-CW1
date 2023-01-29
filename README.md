@@ -1,6 +1,5 @@
 # IM-CW1
 
-
 Before using the ./test.sh script:
 
 1. The "01-pgconf-changed.conf" file in the "config" folder must be placed in "/etc/postgres/your_version/main/conf.d/":
@@ -16,3 +15,7 @@ Before using the ./test.sh script:
 7. sudo systemctl restart postgresql
 
 8. Run the ./test.sh script in a full screen terminal
+
+
+The scripts in the config folder are important for security and they are spoken about in the report. The test script may run without the config files but that is not guaranteed.
+Most importantly, the 01 config file changes the postgresql port to 5433, so keep in mind that connections are made with "-p 5433".
