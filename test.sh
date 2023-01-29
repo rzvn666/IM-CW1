@@ -1,6 +1,8 @@
 #!/bin/bash
 
+
 sudo -su postgres psql -U postgres -c "ALTER ROLE postgres WITH LOGIN PASSWORD 'postgres';"
+
 
 export PGHOST=localhost
 export PGPORT=5433
